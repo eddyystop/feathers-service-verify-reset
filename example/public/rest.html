@@ -1,0 +1,140 @@
+<html>
+  <head>
+    <title>socket</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        font-family: 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif';
+        font-weight: 400;
+        font-size: 16px;
+        color: #333;
+      }
+
+      .center-text {
+        text-align: center;
+      }
+
+      main {
+        margin-top: 100px;
+        padding: 20px;
+      }
+
+      img.logo {
+        display: block;
+        margin: 0 auto;
+        max-width: 100%;
+        margin-bottom: 30px;
+      }
+
+      h2 {
+        font-size: 2em;
+        font-weight: 100;
+      }
+
+      footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 20px;
+      }
+
+      footer p {
+        font-weight: 300;
+        font-size: 1.0em;
+      }
+
+      a {
+        color: #31D8A0;
+        text-decoration: none;
+      }
+
+      a:hover,
+      a:focus {
+        color: #31D8A0;
+      }
+
+      .small {
+        font-size: small;
+      }
+    </style>
+  </head>
+  <body>
+  <div id="control-panel">
+    <h4>Verify user's email</h4>
+    <span style="font-size: small">Open dev-tools to see console messages</span>
+    <br />
+    <br />
+    <input type="button" id="add-user" value="create user" />
+    <input type="text" id="name" placeholder="user name" size="15" />
+    <input type="text" id="email" placeholder="email: a@a.com" size="15" />
+    <input type="text" id="password" placeholder="password: a" size="15" />
+    <br />
+    <br />
+    <input type="button" id="resend-verify" value="resend verification" />
+    <input type="text" id="resend-email" placeholder="email: a@a.com" size="15" />
+    <br />
+    <br />
+    <span style="font-size: small">This link would be sent to user's email. Click it to verify the email:</span>
+    <br />
+    <a id="verify" href=""></a>
+    <br />
+    <br />
+    <input type="button" id="signin-user" value="sign in" />
+    <input type="text" id="email-signin" placeholder="email: a@a.com" size="15" />
+    <input type="text" id="password-signin" placeholder="password: a" size="15" />
+    <span style="font-size: small">The client checks that the user has been verified.</span>
+    <br />
+    <input type="button" id="log-out" value="log out" />
+    <br />
+    <br />
+    <input type="button" id="message" value="create a message" />
+    <span style="font-size: small">Server checks that the user has been verified.</span>
+    <br />
+    <br />
+    <h4>Reset password</h4>
+    <br />
+    <input type="button" id="reset-pwd" value="reset password" />
+    <input type="text" id="reset-email" placeholder="email: a@a.com" size="15" />
+    <br />
+    <br />
+    <span style="font-size: small">This link would be sent to user's email. Click it to reset the password:</span>
+    <br />
+    <a id="reset" href=""></a>
+  </div>
+
+  <div id="verify-signup" style="display:none">
+    Successful verification.
+    <br />
+    <input type="button" id="sign-in" value="Sign In" />
+  </div>
+
+  <div id="reset-password" style="display:none">
+    <input type="button" id="do-reset" value="Reset" />
+    <input type="text" id="password-reset" placeholder="new password" size="15" />
+    <br />
+    <br />
+    <span style="font-size: small">Reset token:</span>
+    <input type="text" id="reset-token" placeholder="reset token sent" size="35" disabled />
+  </div>
+
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/core-js/2.1.4/core.min.js"></script>
+    <script src="//npmcdn.com/feathers-client@^1.4.1/dist/feathers.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const apiType = 'rest';
+      const socket = io();
+      const app = feathers()
+          .configure(feathers.rest('http://localhost:3030').fetch(fetch))
+          .configure(feathers.hooks())
+          .configure(feathers.authentication({ storage: window.localStorage }));
+    </script>
+    <script src="/lib/feathers-service-verify-reset/client.js"></script>
+    <script src="/feathers-api.js"></script>
+  </body>
+</html>

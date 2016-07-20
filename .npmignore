@@ -3,6 +3,8 @@
 node_modules/
 # ES6 source
 src/
+# example
+example/
 # coverage report
 coverage/
 # checklists and standard files
