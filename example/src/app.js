@@ -25,8 +25,11 @@ app.use(compress())
   .use('/socket', (req, res) => { // allows client to handle e.g. /socket/.../...
     res.sendFile(path.resolve(__dirname, '..', 'public', 'socket.html'));
   })
-  .use('/rest', (req, res) => { // allows client to handle e.g. /rest/.../...
+  .use('/rest', (req, res) => {
     res.sendFile(path.resolve(__dirname, '..', 'public', 'rest.html'));
+  })
+  .use('/verifyReset-client', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '..', '..', 'src','client.js'));
   })
   .use(bodyParser.json())
   .use(bodyParser.urlencoded({ extended: true }))

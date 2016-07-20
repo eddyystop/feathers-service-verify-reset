@@ -33,7 +33,9 @@
     "feathersjs",
     "hook",
     "hooks",
-    "?????"
+    "services",
+    "authentication",
+    "verification"
   ],
   "author": "John Szwaronek <johnsz9999@gmail.com>",
   "license": "MIT",
@@ -42,7 +44,11 @@
   },
   "homepage": "https://github.com/eddyystop/feathers-service-verify-reset#readme",
   "dependencies": {
+    "crypto": "^0.0.3",
     "debug": "^2.2.0",
+    "feathers-authentication": "^0.7.9",
+    "feathers-errors": "^2.3.0",
+    "feathers-hooks-utils": "^0.1.2",
     "object.assign": "^4.0.4"
   },
   "devDependencies": {
