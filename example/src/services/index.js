@@ -4,7 +4,7 @@
 const message = require('./message');
 const authentication = require('./authentication');
 const user = require('./user');
-const verifyReset = require('./../../lib/verifyReset').service;
+const verifyReset = require('../../libr/verifyReset').service;
 
 module.exports = function () { // 'function' needed as we use 'this'
   const app = this;

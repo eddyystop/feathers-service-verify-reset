@@ -1,4 +1,4 @@
 
 /* eslint no-console: 0 */
 
-exports.verifyResetHooks = require('./../../lib/verifyReset').hooks;
+exports.verifyResetHooks = require('../../libr/verifyReset').hooks;
