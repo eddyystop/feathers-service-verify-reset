@@ -15,7 +15,7 @@
     "eslint": "eslint src/. test/. --ext .js,.jsx .",
     "build": "npm run copy && npm run babel",
     "test": "npm run build && npm run eslint && npm run mocha",
-    "test:es6": "npm run eslint && npm run mocha:es6",
+    "test:es6": "npm run mocha:es6",
     "cover": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- --reporter spec test/*",
     "watch": "npm run copy && npm run babel:watch",
     "git:push": "npm run build && git push origin && git push origin --tags",
@@ -65,7 +65,8 @@
     "eslint-plugin-jsx-a11y": "^2.0.1",
     "eslint-plugin-react": "^5.2.2",
     "istanbul": "^0.4.4",
-    "mocha": "^2.5.3"
+    "mocha": "^2.5.3",
+    "sift": "crcn/sift.js"
   },
   "engines": {
     "node": ">=5.0.0",

@@ -1,4 +1,6 @@
 
+/* eslint consistent-return: 0, no-param-reassign: 0, no-var: 0, vars-on-top: 0 */
+
 const crypto = require('crypto');
 const errors = require('feathers-errors');
 const auth = require('feathers-authentication').hooks;
@@ -15,13 +17,18 @@ const defaultResetDelay = 1000 * 60 * 60 * 2; // 2 hours
 /**
  * Feathers-service-verify-reset service to verify user's email, and to reset forgotten password.
  *
- * @param {Function?} emailer (action, user, provider, cb) sends an email for 'action'.
+ * @param {Object?} options for service
+ *
+ * options.emailer - function(action, user, provider, cb) sends an email for 'action'.
  *    action    function performed: resend, verify, forgot, reset.
  *    user      user's information.
  *    provider  transport used: rest (incl raw HTTP), socketio, primus or undefined (internal)
  *
  *    The forgot (reset forgotten password) and resend (resend user email verification)
  *    are needed to provide the user a link. The other emails are optional.
+ *
+ * options.resetDelay - duration for password reset token in ms. Default is 2 hours.
+ *
  * @returns {Function} Featherjs service
  *
  * This service does not handle the email on creation of a new user account.
@@ -42,11 +49,14 @@ const defaultResetDelay = 1000 * 60 * 60 * 2; // 2 hours
  *   ]
  * };
  */
-module.exports.service = function (emailer) {
-  debug(`service configured. typeof emailer=${typeof emailer}`);
-  if (!emailer) { emailer = function () {} }
+module.exports.service = function (options) {
+  options = options || {};
+  debug(`service configured. typeof emailer=${typeof options.emailer}`);
 
-  return function () { // 'function' needed as we use 'this'
+  const emailer = options.emailer || function (p1, p2, p3, cb) { cb(null); };
+  const resetDelay = options.resetDelay || defaultResetDelay;
+
+  return function verifyReset() { // 'function' needed as we use 'this'
     debug('service initialized');
     const app = this;
     var users;
@@ -72,14 +82,14 @@ module.exports.service = function (emailer) {
             resetPwd(data.value, data.data, cb);
             break;
           default:
-            throw new errors.BadRequest(`Action "${data.action}" is invalid.`)
+            throw new errors.BadRequest(`Action "${data.action}" is invalid.`);
         }
-      }
+      },
     });
 
-    function resendVerifySignUp (email, cb) {
+    function resendVerifySignUp(email, cb) {
       debug('resend');
-      users.find({query: {email}})
+      users.find({ query: { email } })
         .then(data => {
           if (data.total === 0) {
             return cb(new errors.BadRequest(`Email "${email}" not found.`));
@@ -88,18 +98,19 @@ module.exports.service = function (emailer) {
           const user = data.data[0]; // Only 1 entry as emails must be unique
 
           if (user.isVerified) {
-            return cb(new errors.BadRequest(`User is already verified.`));
+            return cb(new errors.BadRequest('User is already verified.'));
           }
 
-          addVerifyProps(user, {}, (err, user) => {
-            users.update(user._id, user, {}, (err, user) => {
-              if (err) { throw new errors.GeneralError(err); }
+          addVerifyProps(user, {}, (err, user1) => {
+            users.update(user1._id, user1, {}, // eslint-disable-line no-underscore-dangle
+              (err1, user2) => {
+                if (err1) { throw new errors.GeneralError(err1); }
 
-              emailer('resend', clone(user), params, (err) => {
-                debug('resend. Completed.');
-                cb(err, getClientUser(user));
+                emailer('resend', clone(user2), params, (err2) => {
+                  debug('resend. Completed.');
+                  cb(err2, getClientUser(user2));
+                });
               });
-            });
           });
         })
         .catch(err => {
@@ -107,18 +118,18 @@ module.exports.service = function (emailer) {
         });
     }
 
-    function verifySignUp (token, cb) {
+    function verifySignUp(token, cb) {
       debug('verify');
-      users.find({query: {verifyToken: token}})
+      users.find({ query: { verifyToken: token } })
         .then(data => {
           if (data.total === 0) {
-            return cb(new errors.BadRequest(`Verification token not found.`));
+            return cb(new errors.BadRequest('Verification token not found.'));
           }
 
           const user = data.data[0]; // Only 1 entry as token are unique
 
           if (user.isVerified) {
-            return cb(new errors.BadRequest(`User is already verified.`));
+            return cb(new errors.BadRequest('User is already verified.'));
           }
 
           user.isVerified = user.verifyExpires > Date.now();
@@ -132,26 +143,27 @@ module.exports.service = function (emailer) {
           }
 
           if (!user.isVerified) {
-            return cb(new errors.BadRequest(`Verification token has expired.`));
+            return cb(new errors.BadRequest('Verification token has expired.'));
           }
 
-          users.update(user._id, user, {}, (err, user) => {
-            if (err) { throw new errors.GeneralError(err); }
+          users.update(user._id, user, {}, // eslint-disable-line no-underscore-dangle
+            (err, user1) => {
+              if (err) { throw new errors.GeneralError(err); }
 
-            emailer('verify', clone(user), params, (err) => {
-              debug('verify. Completed.');
-              cb(err, getClientUser(user));
+              emailer('verify', clone(user1), params, (err1) => {
+                debug('verify. Completed.');
+                cb(err1, getClientUser(user1));
+              });
             });
-          });
         })
         .catch(err => {
           throw new errors.GeneralError(err);
         });
     }
 
-    function sendResetPwd (email, cb) {
+    function sendResetPwd(email, cb) {
       debug('forgot');
-      users.find({query: {email}})
+      users.find({ query: { email } })
         .then(data => {
           if (data.total === 0) {
             return cb(new errors.BadRequest(`Email "${email}" not found.`));
@@ -160,7 +172,7 @@ module.exports.service = function (emailer) {
           const user = data.data[0]; // Only 1 entry as emails must be unique
 
           if (!user.isVerified) {
-            return cb(new errors.BadRequest(`User\'s email is not yet verified.`));
+            return cb(new errors.BadRequest('User\'s email is not yet verified.'));
           }
 
           crypto.randomBytes(15, (err, buf) => {
@@ -168,17 +180,18 @@ module.exports.service = function (emailer) {
               throw new errors.GeneralError(err);
             }
 
-            user.resetExpires = Date.now() + defaultResetDelay;
+            user.resetExpires = Date.now() + resetDelay;
             user.resetToken = buf.toString('hex');
 
-            users.update(user._id, user, {}, (err, user) => {
-              if (err) { throw new errors.GeneralError(err); }
+            users.update(user._id, user, {}, // eslint-disable-line no-underscore-dangle
+              (err1, user1) => {
+                if (err1) { throw new errors.GeneralError(err1); }
 
-              emailer('forgot', clone(user), params, (err) => {
-                debug('forgot. Completed.');
-                cb(err, getClientUser(user));
+                emailer('forgot', clone(user1), params, (err2) => {
+                  debug('forgot. Completed.');
+                  cb(err2, getClientUser(user1));
+                });
               });
-            });
           });
         })
         .catch(err => {
@@ -186,29 +199,29 @@ module.exports.service = function (emailer) {
         });
     }
 
-    function resetPwd (token, json, cb) {
+    function resetPwd(token, json, cb) {
       debug(`reset. json=${JSON.stringify(json)}`);
-      users.find({query: {resetToken: token}})
+      users.find({ query: { resetToken: token } })
         .then(data => {
           if (data.total === 0) {
-            return cb(new errors.BadRequest(`Reset token not found.`));
+            return cb(new errors.BadRequest('Reset token not found.'));
           }
 
           const user = data.data[0]; // Only 1 entry as token are unique
 
           if (!user.isVerified) {
-            return cb(new errors.BadRequest(`User\'s email is not verified.`));
+            return cb(new errors.BadRequest('User\'s email is not verified.'));
           }
           if (user.resetExpires < Date.now()) {
-            return cb(new errors.BadRequest(`Reset token has expired.`));
+            return cb(new errors.BadRequest('Reset token has expired.'));
           }
 
           // hash the password just like create: [ auth.hashPassword() ]
 
           const hook = {
             type: 'before',
-            data: {password: json.password},
-            params: {provider: null},
+            data: { password: json.password },
+            params: { provider: null },
             app: {
               get(str) {
                 return app.get(str);
@@ -218,19 +231,20 @@ module.exports.service = function (emailer) {
 
           debug('reset. hashing password.');
           auth.hashPassword()(hook)
-            .then(hook => {
-              user.password = hook.data.password;
+            .then(hook1 => {
+              user.password = hook1.data.password;
               user.resetExpires = null;
               user.resetToken = null;
 
-              users.update(user._id, user, {}, (err, user) => {
-                if (err) { throw new errors.GeneralError(err); }
+              users.update(user._id, user, {}, // eslint-disable-line no-underscore-dangle
+                (err, user1) => {
+                  if (err) { throw new errors.GeneralError(err); }
 
-                emailer('reset', clone(user), params, (err) => {
-                  debug('reset. Completed.');
-                  cb(err, getClientUser(user));
+                  emailer('reset', clone(user1), params, (err1) => {
+                    debug('reset. Completed.');
+                    cb(err1, getClientUser(user1));
+                  });
                 });
-              });
             })
             .catch(err => {
               throw new errors.GeneralError(err);
@@ -241,7 +255,7 @@ module.exports.service = function (emailer) {
         });
     }
 
-    function getClientUser (user) {
+    function getClientUser(user) {
       const client = clone(user);
       delete client.password;
       return client;
@@ -274,14 +288,14 @@ module.exports.hooks.restrictToVerified = () => (hook) => {
 
 module.exports.hooks.removeVerification = (ifReturnTokens) => (hook) => {
   utils.checkContext(hook, 'after');
-  const user = hook.result;
+  const user = (hook.result || {}).user;
 
   if (user) {
     delete user.verifyExpires;
     delete user.resetExpires;
     if (!ifReturnTokens) {
       delete user.verifyToken;
-      delete user.resetToken
+      delete user.resetToken;
     }
   }
 };
@@ -304,6 +318,6 @@ const addVerifyProps = (data, options, cb) => {
   });
 };
 
-function clone (obj) {
+function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
