@@ -186,6 +186,14 @@ The two clients differ only in their how they configure `feathers-client`.
 
 ## API Reference
 
+The following properties are added to `user` data:
+
+- `isVerified` {Boolean} if user's email addr has been verified.
+- `verifyToken` {String|null} token (slug) emailed for email addr verification.
+- `verifyExpires` {Number|null} date-time when token expires.
+- `resetToken` {String|null?} optional token (slug) emailed for password reset.
+- `resetExpires` {Number|null?} date-time when token expires.
+
 See Code Example section above.
 
 See `example` folder for a fully functioning example.
