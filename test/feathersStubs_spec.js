@@ -3,7 +3,6 @@
 /* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0 */
 
 const assert = require('chai').assert;
-const debug = require('debug')('test:verifyReset_spec');
 const feathersStubs = require('./helpers/feathersStubs');
 
 // user DB
@@ -26,35 +25,32 @@ describe('feathersStubs::users', () => {
   });
 
   it('mock of users::find works', (done) => {
-    //assert.isFunction(verifyReset.create);
     users.find({ query: { email: 'a' } })
       .then(({ total, data }) => {
-
         assert.equal(total, 1);
         assert.deepEqual(data[0], usersDb[0]);
 
         done();
       })
-      .catch(err => {
+      .catch(() => {
         assert.isNotOk(true, '.catch on find');
         done();
       });
   });
 
   it('mock of users::update works', (done) => {
-    const id = usersDb[0]._id;
+    const id = usersDb[0]._id; // eslint-disable-line no-underscore-dangle
     const newRec = { _id: id, email: 'abc123' };
 
-    users.update(id, newRec, {}, (err, data) => {
+    users.update(id, newRec, {}, () => {
       users.find({ query: { email: 'abc123' } })
         .then(({ total, data }) => {
-
           assert.equal(total, 1);
           assert.deepEqual(data[0], newRec);
 
           done();
         })
-        .catch(err => {
+        .catch(() => {
           assert.isNotOk(true, '.catch on find');
           done();
         });

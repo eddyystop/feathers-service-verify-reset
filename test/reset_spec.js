@@ -1,15 +1,12 @@
 
 /* global assert, describe, it */
-/* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0 */
+/* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0,
+no-unused-vars: 0 */
 
 const assert = require('chai').assert;
-const debug = require('debug')('test:reset_spec');
 const feathersStubs = require('./helpers/feathersStubs');
-const verifyResetService = require('../src').service;
-
-const SpyOn = feathersStubs.SpyOn;
-const defaultVerifyDelay = 1000 * 60 * 60 * 24 * 5; // 5 days
-const defaultResetDelay = 1000 * 60 * 60 * 2; // 2 hours
+const verifyResetService = require('../lib').service;
+const SpyOn = require('./helpers/basicSpy');
 
 // user DB
 
@@ -22,7 +19,7 @@ const usersDb = [
 
 // Tests
 
-describe('verifyReset::reset', () => {
+describe('reset', () => {
   var db;
   var app;
   var users;
@@ -42,7 +39,6 @@ describe('verifyReset::reset', () => {
 
     verifyReset.create({ action: 'reset', value: resetToken, data: { password } }, {},
       (err, user) => {
-
         assert.strictEqual(err, null, 'err code set');
         assert.strictEqual(user.isVerified, true, 'isVerified not true');
         assert.strictEqual(user.resetToken, null, 'resetToken not null');
@@ -57,26 +53,26 @@ describe('verifyReset::reset', () => {
 
   it('error on expired token', (done) => {
     const resetToken = '111';
-    verifyReset.create({ action: 'reset', value: resetToken, data: { password } }, {}, (err, user) => {
+    verifyReset.create({ action: 'reset', value: resetToken, data: { password } }, {},
+      (err, user) => {
+        assert.equal(err.message, 'Reset token has expired.');
 
-      assert.equal(err.message, 'Reset token has expired.');
-
-      done();
-    });
+        done();
+      });
   });
 
   it('error on token not found', (done) => {
     const resetToken = '999';
-    verifyReset.create({ action: 'reset', value: resetToken, data: { password } }, {}, (err, user) => {
+    verifyReset.create({ action: 'reset', value: resetToken, data: { password } }, {},
+      (err, user) => {
+        assert.equal(err.message, 'Reset token not found.');
 
-      assert.equal(err.message, 'Reset token not found.');
-
-      done();
-    });
+        done();
+      });
   });
 });
 
-describe('verifyReset::reset with email', () => {
+describe('reset with email', () => {
   var db;
   var app;
   var users;
@@ -90,7 +86,7 @@ describe('verifyReset::reset with email', () => {
     users = feathersStubs.users(app, db);
     spyEmailer = new SpyOn(emailer);
 
-    verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // define and attach verifyReset service
+    verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset service
     verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
   });
 
@@ -99,7 +95,6 @@ describe('verifyReset::reset with email', () => {
 
     verifyReset.create({ action: 'reset', value: resetToken, data: { password } }, {},
       (err, user) => {
-
         assert.strictEqual(err, null, 'err code set');
         assert.strictEqual(user.isVerified, true, 'isVerified not true');
         assert.strictEqual(user.resetToken, null, 'resetToken not null');
@@ -110,7 +105,7 @@ describe('verifyReset::reset with email', () => {
         assert.equal(hash.length, 60, 'password wrong length');
 
         assert.deepEqual(spyEmailer.result(), [
-          { args: ['reset', Object.assign({}, user, { password: hash }), {}], result: [null] }
+          { args: ['reset', Object.assign({}, user, { password: hash }), {}], result: [null] },
         ]);
 
         done();
@@ -122,17 +117,6 @@ describe('verifyReset::reset with email', () => {
 
 function emailer(action, user, params, cb) {
   cb(null);
-}
-
-function makeDateTime(options1) {
-  options1 = options1 || {};
-  return Date.now() + (options1.delay || defaultVerifyDelay);
-}
-
-function aboutEqualDateTime(time1, time2, msg, delta) {
-  delta = delta || 500;
-  const diff = Math.abs(time1 - time2);
-  assert.isAtMost(diff, delta, msg || `times differ by ${diff}ms`)
 }
 
 function clone(obj) {

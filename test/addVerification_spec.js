@@ -1,12 +1,12 @@
 
 /* global assert, describe, it */
-/* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0 */
+/* eslint no-param-reassign: 0, no-shadow: 0, no-var: 0, one-var: 0,
+one-var-declaration-per-line: 0 */
 
 const assert = require('chai').assert;
-const hooks = require('../src').hooks;
+const hooks = require('../lib').hooks;
 
 const defaultVerifyDelay = 1000 * 60 * 60 * 24 * 5; // 5 days
-const defaultResetDelay = 1000 * 60 * 60 * 2; // 2 hours
 
 var hookIn;
 var options;
@@ -87,5 +87,5 @@ function makeDateTime(options1) {
 function aboutEqualDateTime(time1, time2, msg, delta) {
   delta = delta || 500;
   const diff = Math.abs(time1 - time2);
-  assert.isAtMost(diff, delta, msg || `times differ by ${diff}ms`)
+  assert.isAtMost(diff, delta, msg || `times differ by ${diff}ms`);
 }

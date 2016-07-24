@@ -3,7 +3,7 @@
 /* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0 */
 
 const assert = require('chai').assert;
-const hooks = require('../src').hooks;
+const hooks = require('../lib').hooks;
 
 var hookIn;
 
@@ -13,8 +13,13 @@ describe('hook:remove verification', () => {
       type: 'after',
       method: 'create',
       result: { user: {
-        email: 'a@a.com', password: '0000000000', isVerified: true,
-        verifyToken: '000', verifyExpires: Date.now(), resetToken: '000', resetExpires: Date.now()
+        email: 'a@a.com',
+        password: '0000000000',
+        isVerified: true,
+        verifyToken: '000',
+        verifyExpires: Date.now(),
+        resetToken: '000',
+        resetExpires: Date.now(),
       } },
     };
   });

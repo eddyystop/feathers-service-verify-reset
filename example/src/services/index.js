@@ -10,7 +10,7 @@ module.exports = function () { // 'function' needed as we use 'this'
   const app = this;
 
   app.configure(authentication);
-  app.configure(verifyReset({ emailer: emailer }));
+  app.configure(verifyReset({ emailer }));
   app.configure(user);
   app.configure(message);
 };

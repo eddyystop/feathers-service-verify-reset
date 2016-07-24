@@ -29,7 +29,7 @@ app.use(compress())
     res.sendFile(path.resolve(__dirname, '..', 'public', 'rest.html'));
   })
   .use('/verifyReset-client', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '..', '..', 'src', 'client.js'));
+    res.sendFile(path.resolve(__dirname, '..', '..', 'lib', 'client.js'));
   })
   .use(bodyParser.json())
   .use(bodyParser.urlencoded({ extended: true }))

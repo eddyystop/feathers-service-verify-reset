@@ -1,14 +1,13 @@
 
 /* global assert, describe, it */
-/* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0 */
+/* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0,
+no-param-reassign: 0, no-unused-vars: 0  */
 
 const assert = require('chai').assert;
-const debug = require('debug')('test:forgot_spec');
 const feathersStubs = require('./helpers/feathersStubs');
-const verifyResetService = require('../src').service;
+const verifyResetService = require('../lib').service;
+const SpyOn = require('./helpers/basicSpy');
 
-const SpyOn = feathersStubs.SpyOn;
-const defaultVerifyDelay = 1000 * 60 * 60 * 24 * 5; // 5 days
 const defaultResetDelay = 1000 * 60 * 60 * 2; // 2 hours
 
 // user DB
@@ -38,7 +37,6 @@ describe('verifyReset::forgot', () => {
   it('updates verified user', (done) => {
     const email = 'b';
     verifyReset.create({ action: 'forgot', value: email }, {}, (err, user) => {
-
       assert.strictEqual(err, null, 'err code set');
       assert.strictEqual(user.isVerified, true, 'isVerified not true');
       assert.isString(user.resetToken, 'resetToken not String');
@@ -52,7 +50,6 @@ describe('verifyReset::forgot', () => {
   it('error on unverified user', (done) => {
     const email = 'a';
     verifyReset.create({ action: 'forgot', value: email }, {}, (err, user) => {
-
       assert.equal(err.message, 'User\'s email is not yet verified.');
 
       done();
@@ -62,7 +59,6 @@ describe('verifyReset::forgot', () => {
   it('error on email not found', (done) => {
     const email = 'x';
     verifyReset.create({ action: 'forgot', value: email }, {}, (err, user) => {
-
       assert.equal(err.message, `Email "${email}" not found.`);
 
       done();
@@ -83,14 +79,13 @@ describe('verifyReset::forgot with email', () => {
     users = feathersStubs.users(app, usersDb);
     spyEmailer = new SpyOn(emailer);
 
-    verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // define and attach verifyReset service
+    verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset service
     verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
   });
 
   it('updates verified user', (done) => {
     const email = 'b';
     verifyReset.create({ action: 'forgot', value: email }, {}, (err, user) => {
-
       assert.strictEqual(err, null, 'err code set');
       assert.strictEqual(user.isVerified, true, 'isVerified not true');
       assert.isString(user.resetToken, 'resetToken not String');
@@ -98,7 +93,7 @@ describe('verifyReset::forgot with email', () => {
       aboutEqualDateTime(user.resetExpires, makeDateTime());
 
       assert.deepEqual(spyEmailer.result(), [
-        { args: ['forgot', user, {}], result: [null] }
+        { args: ['forgot', user, {}], result: [null] },
       ]);
 
       done();
@@ -120,7 +115,7 @@ function makeDateTime(options1) {
 function aboutEqualDateTime(time1, time2, msg, delta) {
   delta = delta || 500;
   const diff = Math.abs(time1 - time2);
-  assert.isAtMost(diff, delta, msg || `times differ by ${diff}ms`)
+  assert.isAtMost(diff, delta, msg || `times differ by ${diff}ms`);
 }
 
 function clone(obj) {

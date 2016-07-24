@@ -2,14 +2,14 @@
 Adds user email verification and password reset capabilities to local
 [`feathers-authentication`](http://docs.feathersjs.com/authentication/local.html).
 
-Email addr verification and handling forgotten password are generally considered mandatory
+Email addr verification and handling forgotten passwords are often considered mandatory
 these days. This package adds that functionality to [Feathersjs](http://docs.feathersjs.com/).
 
-The optional transactional emails sent contain a link including a 60-char slug.
+The optional transactional emails sent contain a link including a 30-char slug.
 The slug has a configurable expiry delay. Emails may be sent for:
 
 - Email addr verification when a new user is created.
-- Resending a new email addr verification, e.g. previous email lost or is expired.
+- Resending a new email addr verification, e.g. previous verification email was lost or is expired.
 - Sending an email when the password is forgotten.
 
 The server does not handle any interactions with the user.
@@ -47,7 +47,8 @@ function emailer(action, user, params, cb) {
 ```
 
 Email verification request is initiated when user if created on the server.
-/src/services/user/hooks/index:
+
+`/src/services/user/hooks/index`:
 
 ```javascript
 const verifyHooks = require('../../../hooks').verifyResetHooks;
@@ -75,13 +76,13 @@ function emailVerification(hook, next) {
 ```
 ### Client
 
-Client loads wrapper for package API.
+Client loads wrappers for package API.
 
 ```html
 <script src=".../feathers-service-verify-reset/lib/client.js"></script>
 ```
 
-Client now use the package APIs.
+It can now use the package APIs.
 
 ```javascript
 // Add a new user, using standard feathers users service.
@@ -112,7 +113,7 @@ verifyReset.sendResetPassword(email, (err, user) => {
 
 // Reset the new password once the user follows the link in the reset email
 // and enters a new password.
-verifyReset.sendResetPassword(email, (err, user) => {
+verifyReset.saveResetPassword(slug, password, (err) => {
   // ...
 });
 ```
@@ -123,7 +124,7 @@ The client handles all interactions with the user.
 Therefore the server must serve the client when an email link is followed,
 and the client must do some routing based on the path in the link.
 
-Assume you have sent the email link
+Assume you have sent the email link:
 `http://localhost:3030/socket/verify/12b827994bb59cacce47978567989e`
 
 The server serves the client app on `/socket`:
@@ -173,21 +174,25 @@ It will run on Node 6+ without transpiling.
 ## Install and run example
 
 `cd example`
+
 `npm install`
+
 `npm start`
 
 Point browser to `localhost:3030/socket` for the socketio client,
 to `localhost:3030/rest` for the rest client.
+
 The two clients differ only in their how they configure `feathers-client`.
 
 ## API Reference
 
 See Code Example section above.
+
 See `example` folder for a fully functioning example.
 
 ## Tests
 
-`npm test` to run tests.
+`npm test` to run tests on Nodejs 5+.
 
 `npm run cover` to run tests plus coverage.
 

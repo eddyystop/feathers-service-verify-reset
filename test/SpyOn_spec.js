@@ -3,9 +3,7 @@
 /* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0 */
 
 const assert = require('chai').assert;
-const debug = require('debug')('test:simpleSpy_spec');
-const SpyOn = require('./helpers/feathersStubs').SpyOn;
-
+const SpyOn = require('./helpers/basicSpy');
 
 describe('feathersStubs::SpyOn', () => {
   it('works with functions without callbacks', () => {
@@ -15,7 +13,7 @@ describe('feathersStubs::SpyOn', () => {
 
     assert.deepEqual(spy.result(), [
       { args: [1, 2, 3], result: ['y', false, [1, 2, 3]] },
-      { args: [4, 5, 6], result: ['y', false, [4, 5, 6]] }
+      { args: [4, 5, 6], result: ['y', false, [4, 5, 6]] },
     ]);
 
     function test(a, b, c) { return ['y', false, [a, b, c]]; }
@@ -35,16 +33,14 @@ describe('feathersStubs::SpyOn', () => {
 
         assert.deepEqual(spy.result(), [
           { args: [1, 2, 3], result: ['a', true, [1, 2, 3]] },
-          { args: [8, 9, 0], result: ['a', true, [8, 9, 0]] }
+          { args: [8, 9, 0], result: ['a', true, [8, 9, 0]] },
         ]);
         done();
       });
     });
 
     function testCb(a, b, c, cb) {
-      setTimeout(() => {
-        return cb('a', true, [a, b, c]);
-      }, 0);
+      setTimeout(() => (cb('a', true, [a, b, c])), 0);
     }
   });
 });
