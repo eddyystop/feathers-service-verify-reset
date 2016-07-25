@@ -10,7 +10,9 @@ The slug has a configurable expiry delay. Emails may be sent for:
 
 - Email addr verification when a new user is created.
 - Resending a new email addr verification, e.g. previous verification email was lost or is expired.
+- Successful user verification.
 - Sending an email when the password is forgotten.
+- Successful password reset for a forgotten password.
 
 The server does not handle any interactions with the user.
 Leaving it a pure API server, lets it be used with both native and browser clients.
@@ -40,15 +42,15 @@ module.exports = function () { // 'function' needed as we use 'this'
 
 function emailer(action, user, params, cb) {
   switch (action) {
-    // ...
+    // resend (send another verification email), verify (email addr has been verified)
+    // forgot (send forgot password email), reset (password has been reset)
   }
   cb(null);
 }
 ```
 
-Email verification request is initiated when user if created on the server.
-
-`/src/services/user/hooks/index`:
+An email to verify the user's email addr can be sent when user if created on the server,
+e.g. `/src/services/user/hooks/index`:
 
 ```javascript
 const verifyHooks = require('../../../hooks').verifyResetHooks;
@@ -57,7 +59,7 @@ exports.before = {
   // ...
   create: [
     auth.hashPassword(),
-    verifyHooks.addVerification(), // set email addr verification info // NEW
+    verifyHooks.addVerification(), // set email addr verification info
   ],
 
 exports.after = {
@@ -74,9 +76,10 @@ function emailVerification(hook, next) {
   next(null, hook);
 }
 ```
+
 ### Client
 
-Client loads wrappers for package API.
+Client loads a wrapper for package API.
 
 ```html
 <script src=".../feathers-service-verify-reset/lib/client.js"></script>
@@ -86,18 +89,18 @@ It can now use the package APIs.
 
 ```javascript
 // Add a new user, using standard feathers users service.
-// Send a verification email with a link containing a slug.
+// Then send a verification email with a link containing a slug.
 users.create(user, (err, user) => {
   // ...
 });
 
-// Resend a email address verification email. New link, new slug.
+// Resend another email address verification email. New link, new slug.
 verifyReset.resendVerify(email, (err, user) => {
   // ...
 });
 
 // Verify email address once user clicks link in the verification email.
-verifyReset.verifySignUp(slug, (err) => {
+verifyReset.verifySignUp(slug, (err, user) => {
   // ..
 });
 
@@ -113,7 +116,7 @@ verifyReset.sendResetPassword(email, (err, user) => {
 
 // Reset the new password once the user follows the link in the reset email
 // and enters a new password.
-verifyReset.saveResetPassword(slug, password, (err) => {
+verifyReset.saveResetPassword(slug, password, (err, user) => {
   // ...
 });
 ```
@@ -121,7 +124,7 @@ verifyReset.saveResetPassword(slug, password, (err) => {
 ### Routing
 
 The client handles all interactions with the user.
-Therefore the server must serve the client when an email link is followed,
+Therefore the server must serve the client app when an email link is followed,
 and the client must do some routing based on the path in the link.
 
 Assume you have sent the email link:
@@ -156,7 +159,7 @@ switch (action) {
 
 ## Motivation
 
-Email addr verification and handling forgotten password are generally considered mandatory
+Email addr verification and handling forgotten passwords are common features
 these days. This package adds that functionality to Feathersjs.
 
 ## Install package
@@ -200,7 +203,9 @@ See `example` folder for a fully functioning example.
 
 ## Tests
 
-`npm test` to run tests on Nodejs 5+.
+`npm run test:es6` to run tests with the existing ES5 transpiled code.
+
+`npm test` to transpile to ES5 code and then run tests on Nodejs 6+.
 
 `npm run cover` to run tests plus coverage.
 
