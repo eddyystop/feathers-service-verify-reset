@@ -12,7 +12,7 @@ describe('hook:remove verification', () => {
     hookIn = {
       type: 'after',
       method: 'create',
-      result: { user: {
+      result: {
         email: 'a@a.com',
         password: '0000000000',
         isVerified: true,
@@ -20,14 +20,14 @@ describe('hook:remove verification', () => {
         verifyExpires: Date.now(),
         resetToken: '000',
         resetExpires: Date.now(),
-      } },
+      },
     };
   });
 
   it('works with verified user', () => {
     assert.doesNotThrow(() => { hooks.removeVerification()(hookIn); });
 
-    const user = hookIn.result.user;
+    const user = hookIn.result;
     assert.property(user, 'isVerified');
     assert.equal(user.isVerified, true);
     assert.notProperty(user, 'verifyToken');
@@ -37,11 +37,11 @@ describe('hook:remove verification', () => {
   });
 
   it('works with unverified used', () => {
-    hookIn.result.user.isVerified = false;
+    hookIn.result.isVerified = false;
 
     assert.doesNotThrow(() => { hooks.removeVerification()(hookIn); });
 
-    const user = hookIn.result.user;
+    const user = hookIn.result;
     assert.property(user, 'isVerified');
     assert.equal(user.isVerified, false);
     assert.notProperty(user, 'verifyToken');

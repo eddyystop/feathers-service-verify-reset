@@ -288,7 +288,7 @@ module.exports.hooks.restrictToVerified = () => (hook) => {
 
 module.exports.hooks.removeVerification = (ifReturnTokens) => (hook) => {
   utils.checkContext(hook, 'after');
-  const user = (hook.result || {}).user;
+  const user = (hook.result || {});
 
   if (user) {
     delete user.verifyExpires;

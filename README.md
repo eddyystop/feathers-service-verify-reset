@@ -2,7 +2,7 @@
 Adds user email verification and password reset capabilities to local
 [`feathers-authentication`](http://docs.feathersjs.com/authentication/local.html).
 
-Email addr verification and handling forgotten passwords are often considered mandatory
+Email addr verification and handling forgotten passwords are common features
 these days. This package adds that functionality to [Feathersjs](http://docs.feathersjs.com/).
 
 The optional transactional emails sent contain a link including a 30-char slug.
@@ -79,13 +79,13 @@ function emailVerification(hook, next) {
 
 ### Client
 
-Client loads a wrapper for package API.
+Client loads a wrapper for the package
 
 ```html
 <script src=".../feathers-service-verify-reset/lib/client.js"></script>
 ```
 
-It can now use the package APIs.
+and then uses convenient APIs.
 
 ```javascript
 // Add a new user, using standard feathers users service.
