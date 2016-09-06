@@ -127,11 +127,16 @@ module.exports.service = function (options) {
       debug('verify');
       users.find({ query: { verifyToken: token } })
         .then(data => {
-          if (data.total === 0) {
+          if (!Array.isArray(data) && data.total === 0) {
             return cb(new errors.BadRequest('Verification token not found.'));
           }
 
-          const user = data.data[0]; // Only 1 entry as token are unique
+          var user;
+          if (Array.isArray(data)) {
+            user = data[0];
+          } else {
+            user = data.data[0];
+          }
 
           if (user.isVerified) {
             return cb(new errors.BadRequest('User is already verified.'));
