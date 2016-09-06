@@ -91,11 +91,16 @@ module.exports.service = function (options) {
       debug('resend');
       users.find({ query: { email } })
         .then(data => {
-          if (data.total === 0) {
-            return cb(new errors.BadRequest(`Email "${email}" not found.`));
+          if (!Array.isArray(data) && data.total === 0) {
+            return cb(new errors.BadRequest('Email "' + email + '" not found.'));
           }
 
-          const user = data.data[0]; // Only 1 entry as emails must be unique
+          var user
+          if(Array.isArray(data)) {
+            user = data[0]
+          } else {
+            user = data.data[0]
+          }
 
           if (user.isVerified) {
             return cb(new errors.BadRequest('User is already verified.'));
@@ -122,11 +127,16 @@ module.exports.service = function (options) {
       debug('verify');
       users.find({ query: { verifyToken: token } })
         .then(data => {
-          if (data.total === 0) {
+          if (!Array.isArray(data) && data.total === 0) {
             return cb(new errors.BadRequest('Verification token not found.'));
           }
 
-          const user = data.data[0]; // Only 1 entry as token are unique
+          var user;
+          if (Array.isArray(data)) {
+            user = data[0];
+          } else {
+            user = data.data[0];
+          }
 
           if (user.isVerified) {
             return cb(new errors.BadRequest('User is already verified.'));
@@ -165,11 +175,16 @@ module.exports.service = function (options) {
       debug('forgot');
       users.find({ query: { email } })
         .then(data => {
-          if (data.total === 0) {
-            return cb(new errors.BadRequest(`Email "${email}" not found.`));
+          if (!Array.isArray(data) && data.total === 0) {
+            return cb(new errors.BadRequest('Email "' + email + '" not found.'));
           }
 
-          const user = data.data[0]; // Only 1 entry as emails must be unique
+          var user
+          if(Array.isArray(data)) {
+            user = data[0]
+          } else {
+            user = data.data[0]
+          }
 
           if (!user.isVerified) {
             return cb(new errors.BadRequest('User\'s email is not yet verified.'));
@@ -203,11 +218,16 @@ module.exports.service = function (options) {
       debug(`reset. json=${JSON.stringify(json)}`);
       users.find({ query: { resetToken: token } })
         .then(data => {
-          if (data.total === 0) {
-            return cb(new errors.BadRequest('Reset token not found.'));
+          if (!Array.isArray(data) && data.total === 0) {
+            return cb(new errors.BadRequest('Email "' + email + '" not found.'));
           }
 
-          const user = data.data[0]; // Only 1 entry as token are unique
+          var user
+          if(Array.isArray(data)) {
+            user = data[0]
+          } else {
+            user = data.data[0]
+          }
 
           if (!user.isVerified) {
             return cb(new errors.BadRequest('User\'s email is not verified.'));
