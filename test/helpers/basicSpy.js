@@ -4,9 +4,9 @@
 /**
  * Create a light weight spy on functions.
  *
- * @param {Function} fcn to spy on
+ * @param {Function} fcn - to spy on
  * @returns {Object} spy. Call fcn with spy.callWith(...). Get params and results with spy.result().
- * @constructor
+ * @class
  *
  * (1) To test a function without a callback:
  *
@@ -32,7 +32,6 @@
  *   });
  * });
  */
-
 function SpyOn(fcn) {
   if (!(this instanceof SpyOn)) { return new SpyOn(fcn); }
   const stack = [];

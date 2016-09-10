@@ -4,9 +4,9 @@
 one-var-declaration-per-line: 0 */
 
 const assert = require('chai').assert;
-const feathersStubs = require('./helpers/feathersStubs');
-const verifyResetService = require('../lib').service;
-const SpyOn = require('./helpers/basicSpy');
+const feathersStubs = require('./../test/helpers/feathersStubs');
+const verifyResetService = require('../lib/index').service;
+const SpyOn = require('./../test/helpers/basicSpy');
 
 // user DB
 
@@ -48,8 +48,9 @@ describe('verify', () => {
 
   it('error on expired token', (done) => {
     const verifyToken = '111';
-    verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err, user) => {
+    verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err) => {
       assert.equal(err.message, 'Verification token has expired.');
+      assert.equal(err.errors.$className, 'expired');
 
       done();
     });
@@ -57,8 +58,9 @@ describe('verify', () => {
 
   it('error on null token', (done) => {
     const verifyToken = null;
-    verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err, user) => {
+    verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err) => {
       assert.equal(err.message, 'User is already verified.');
+      assert.equal(err.errors.$className, 'alreadyVerified');
 
       done();
     });
@@ -66,8 +68,9 @@ describe('verify', () => {
 
   it('error on token not found', (done) => {
     const verifyToken = '999';
-    verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err, user) => {
-      assert.equal(err.message, 'Verification token not found.');
+    verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err) => {
+      assert.equal(err.message, 'Verification token was not issued.');
+      assert.equal(err.errors.$className, 'notIssued');
 
       done();
     });
@@ -84,7 +87,7 @@ describe('verify with email', () => {
   beforeEach(() => {
     db = clone(usersDb);
     app = feathersStubs.app();
-    users = feathersStubs.users(app, usersDb);
+    users = feathersStubs.users(app, db);
     spyEmailer = new SpyOn(emailer);
 
     verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset service

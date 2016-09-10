@@ -35,7 +35,7 @@ const verifyReset = require('feathers-service-verify-reset').service;
 module.exports = function () { // 'function' needed as we use 'this'
   const app = this;
   app.configure(authentication);
-  app.configure(verifyReset({ emailer })); // NEW
+  app.configure(verifyReset({ emailer })); // line added
   app.configure(user);
   app.configure(message);
 };
@@ -53,7 +53,7 @@ An email to verify the user's email addr can be sent when user if created on the
 e.g. `/src/services/user/hooks/index`:
 
 ```javascript
-const verifyHooks = require('../../../hooks').verifyResetHooks;
+const verifyHooks = require('feathers-service-verify-reset').hooks;
 
 exports.before = {
   // ...
@@ -65,9 +65,9 @@ exports.before = {
 exports.after = {
   // ...
   create: [
-    hooks.remove('password'),
+    hooks.remove('password'), // hook is ignored if server initiated operation
     emailVerification, // send email to verify the email addr
-    verifyHooks.removeVerification(), // NEW
+    verifyHooks.removeVerification(), // hook is ignored if server initiated operation
   ],
 };
 
@@ -85,40 +85,46 @@ Client loads a wrapper for the package
 <script src=".../feathers-service-verify-reset/lib/client.js"></script>
 ```
 
+or
+```javascript
+import VerifyRest from 'feathers-service-verify-reset/lib/client'; 
+```
+
 and then uses convenient APIs.
 
 ```javascript
+const app = feathers() ...
+const verifyReset = new VerifyReset(app);
+
+// Verify the username and email are unique.
+verifyReset.unique({ username, email }, null, false, (err) => { // not unique if err ... });
+
 // Add a new user, using standard feathers users service.
 // Then send a verification email with a link containing a slug.
-users.create(user, (err, user) => {
-  // ...
-});
+users.create(user, (err, user) => { ... });
 
 // Resend another email address verification email. New link, new slug.
-verifyReset.resendVerify(email, (err, user) => {
-  // ...
-});
+verifyReset.resendVerify(email, (err, user) => { ... });
 
 // Verify email address once user clicks link in the verification email.
-verifyReset.verifySignUp(slug, (err, user) => {
-  // ..
-});
+// Then send a confirmation email.
+verifyReset.verifySignUp(slug, (err, user) => { ... });
 
 // Authenticate (sign in) user, requiring user to be verified.
-verifyReset.authenticate(email, password, (err, user) => {
-  // ...
-});
+verifyReset.authenticate(email, password, (err, user) => { ... });
 
-// Send email for a forgotten password. Email contains a link with a slug.
-verifyReset.sendResetPassword(email, (err, user) => {
-  // ...
-});
+// Send email for a forgotten password with a link containing a slug.
+verifyReset.sendResetPassword(email, (err, user) => { ... });
 
-// Reset the new password once the user follows the link in the reset email
-// and enters a new password.
-verifyReset.saveResetPassword(slug, password, (err, user) => {
-  // ...
-});
+// Reset the new password once the user follows the link in the reset email 
+// and enters a new password. Then send a confirmation email.
+verifyReset.saveResetPassword(slug, password, (err, user) => { ... });
+
+// Change the password and send a confirmation email.
+verifyReset.changePassword(oldPassword, newPassword, currentUser, (err, user) => { ... });
+
+// Change the email and send a confirmation email to the old email address..
+verifyReset.changeEmail(password, newEmail, currentUser, (err, user) => { ... });
 ```
 
 ### Routing
@@ -133,14 +139,16 @@ Assume you have sent the email link:
 The server serves the client app on `/socket`:
 
 ```javascript
+// Express-like middleware provided by Feathersjs.
 app.use('/', serveStatic(app.get('public')))
-  // ...
-  .use('/socket', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '..', 'public', 'socket.html'));
+   .use('/socket', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '..', 'public', 'socket.html')); // serve the client
   })
 ```
 
-The client routes itself based on the URL. A way primitive routing could be:
+The client then routes itself based on the URL.
+You will likely use you favorite client-side router,
+but a way primitive routing would be:
 
 ```javascript
 const [leader, provider, action, slug] = window.location.pathname.split('/');
@@ -187,6 +195,9 @@ to `localhost:3030/rest` for the rest client.
 
 The two clients differ only in their how they configure `feathers-client`.
 
+[feathers-starter-react-redux-login-roles](https://github.com/eddyystop/feathers-starter-react-redux-login-roles)
+is a full-featured example of using this repo with React and Redux.
+
 ## API Reference
 
 The following properties are added to `user` data:
@@ -201,13 +212,21 @@ See Code Example section above.
 
 See `example` folder for a fully functioning example.
 
+This repo does some of the heavy lifting for
+[feathers-starter-react-redux-login-roles](https://github.com/eddyystop/feathers-starter-react-redux-login-roles)
+where all of its features are used.
+
 ## Tests
 
-`npm run test:es6` to run tests with the existing ES5 transpiled code.
+`npm run test:only` to run tests with the existing ES5 transpiled code.
 
-`npm test` to transpile to ES5 code and then run tests on Nodejs 6+.
+`npm test` to transpile to ES5 code, eslint and then run tests on Nodejs 6+.
 
 `npm run cover` to run tests plus coverage.
+
+## <a name="changeLog"></a> Change Log
+
+[List of notable changes.](./CHANGELOG.md)
 
 ## Contributors
 

@@ -7,15 +7,16 @@ const debug = require('debug')('test:feathersStubs');
 
 /**
  * Return a stub for feathers' app
- * @param {Object} config to server .app.get(prop) requests
+ *
+ * @param {Object} config - to server .app.get(prop) requests
  * @returns {Object} feathers' app with .use and .service
  */
-
 module.exports.app = function app(config) {
   return {
     services: {},
     use(route, serviceObject) {
       this.services[route] = serviceObject;
+      this.services[route].before = () => {};
     },
     service(route) {
       if (!(route in this.services)) {
@@ -32,22 +33,22 @@ module.exports.app = function app(config) {
 
 /**
  * Return a stub for feathers' users service
- * @param {Object} app stub
- * @param {Array.Object} usersDb is the database of users
+ *
+ * @param {Object} app - stub
+ * @param {Array.Object} usersDb - is the database of users
+ * @param {boolean} nonPaginated - fake a non-paginated db service
  * @returns {Object} feather' service for route /users
  */
-
-module.exports.users = function users(app, usersDb) {
+module.exports.users = function users(app, usersDb, nonPaginated) {
   const usersConfig = {
     find(params) { // always use as a Promise
       const data = sift(params.query || {}, usersDb);
       debug('/users find: %d %o', data.length, params);
 
       return new Promise((resolve) => {
-        resolve({
-          total: data.length,
-          data,
-        });
+        resolve(nonPaginated
+          ? data
+          : { total: data.length, data });
       });
     },
     update(id, user, params, cb) { // always use with a callback

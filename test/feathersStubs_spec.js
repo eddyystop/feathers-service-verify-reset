@@ -3,7 +3,7 @@
 /* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0 */
 
 const assert = require('chai').assert;
-const feathersStubs = require('./helpers/feathersStubs');
+const feathersStubs = require('./../test/helpers/feathersStubs');
 
 // user DB
 

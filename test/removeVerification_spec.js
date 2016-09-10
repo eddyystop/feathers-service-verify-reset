@@ -12,6 +12,7 @@ describe('hook:remove verification', () => {
     hookIn = {
       type: 'after',
       method: 'create',
+      params: { provider: 'socketio' },
       result: {
         email: 'a@a.com',
         password: '0000000000',
@@ -54,6 +55,19 @@ describe('hook:remove verification', () => {
     hookIn.result = {};
 
     assert.doesNotThrow(() => { hooks.removeVerification()(hookIn); });
+  });
+
+  it('noop if server initiated', () => {
+    hookIn.params.provider = undefined;
+    assert.doesNotThrow(() => { hooks.removeVerification()(hookIn); });
+
+    const user = hookIn.result;
+    assert.property(user, 'isVerified');
+    assert.equal(user.isVerified, true);
+    assert.property(user, 'verifyToken');
+    assert.property(user, 'verifyExpires');
+    assert.property(user, 'resetToken');
+    assert.property(user, 'resetExpires');
   });
 
   it('throws with damaged hook', () => {

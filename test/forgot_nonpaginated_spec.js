@@ -4,7 +4,7 @@
 no-param-reassign: 0, no-unused-vars: 0  */
 
 const assert = require('chai').assert;
-const feathersStubs = require('./../test/helpers/feathersStubs');
+const feathersStubs = require('./helpers/feathersStubs');
 const verifyResetService = require('../lib/index').service;
 const SpyOn = require('./helpers/basicSpy');
 
@@ -29,7 +29,7 @@ describe('verifyReset::forgot', () => {
   beforeEach(() => {
     db = clone(usersDb);
     app = feathersStubs.app();
-    users = feathersStubs.users(app, db);
+    users = feathersStubs.users(app, db, true);
     verifyResetService().call(app); // define and attach verifyReset service
     verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
   });
@@ -56,8 +56,10 @@ describe('verifyReset::forgot', () => {
     });
   });
 
-  it('error on email not found', (done) => {
+  it('error on email not found', function (done) {
+    this.timeout(9000);
     const email = 'x';
+
     verifyReset.create({ action: 'forgot', value: email }, {}, (err, user) => {
       assert.equal(err.message, 'Email not found.');
       assert.deepEqual(err.errors, { email: 'Not found.' });
@@ -77,7 +79,7 @@ describe('verifyReset::forgot with email', () => {
   beforeEach(() => {
     db = clone(usersDb);
     app = feathersStubs.app();
-    users = feathersStubs.users(app, db);
+    users = feathersStubs.users(app, db, true);
     spyEmailer = new SpyOn(emailer);
 
     verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset service
