@@ -42,7 +42,7 @@ const verifyResetServiceFake = function () {
 
       const index = usersDb[0].email === email ? 0 : 1;
 
-      return new Promise(() => ({ data: usersDb[index] }));
+      return new Promise((resolve) => resolve({ data: usersDb[index] }));
     };
 
     app.log = () => {};
