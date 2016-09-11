@@ -8,12 +8,21 @@ const feathersStubs = require('./../test/helpers/feathersStubs');
 const verifyResetService = require('../lib/index').service;
 const VerifyReset = require('../lib/client');
 
-// Fake for verifyyResetService service
+// user DB
+
+const usersDb = [
+  { _id: 'a', email: 'bad', password: 'aa', isVerified: false },
+  { _id: 'b', email: 'ok', password: 'bb', isVerified: true },
+];
+
+// Fake for verifyResetService service
 
 var spyData = null;
 var spyParams = null;
+var spyAuthenticateEmail;
+var spyAuthenticatePassword;
 
-const verifyResetServiceFake = function (options) {
+const verifyResetServiceFake = function () {
   return function verifyReset() { // 'function' needed as we use 'this'
     const app = this;
     const path = '/verifyReset/:action/:value';
@@ -26,6 +35,17 @@ const verifyResetServiceFake = function (options) {
         return data.action === 'unique' ? new Promise(resolve => resolve()) : cb();
       },
     });
+
+    app.authenticate = (email, password) => {
+      spyAuthenticateEmail = email;
+      spyAuthenticatePassword = password;
+
+      const index = usersDb[0].email === email ? 0 : 1;
+
+      return new Promise(() => ({ data: usersDb[index] }));
+    };
+
+    app.log = () => {};
   };
 };
 
@@ -118,5 +138,22 @@ describe('wrapper - methods', () => {
     });
   });
 
-  it('authenticate - no tests, no tests, no tests', () => {});
+  it('authenticate is verified', () => {
+    verifyReset.authenticate('ok', '12345678', (err, user) => {
+      assert.equal(spyAuthenticateEmail, 'ok');
+      assert.equal(spyAuthenticatePassword, '12345678');
+
+      assert.equal(err, null);
+      assert.deepEqual(user, usersDb[1]);
+    });
+  });
+
+  it('authenticate is not verified', () => {
+    verifyReset.authenticate('bad', '12345678', (err, user) => {
+      assert.equal(spyAuthenticateEmail, 'bad');
+      assert.equal(spyAuthenticatePassword, '12345678');
+
+      assert.notEqual(err, null);
+    });
+  });
 });
