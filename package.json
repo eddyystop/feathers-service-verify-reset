@@ -1,6 +1,6 @@
 {
   "name": "feathers-service-verify-reset",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Adds user email verification and password reset capabilities to local feathers-authentication",
   "main": "lib/",
   "directories": {
