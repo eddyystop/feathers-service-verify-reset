@@ -20,110 +20,114 @@ const usersDb = [
 
 // Tests
 
-describe('reset', () => {
-  var db;
-  var app;
-  var users;
-  var verifyReset;
-  const password = '123456';
+['paginated', 'non-paginated'].forEach(pagination => {
+  const ifNonPaginated = pagination === 'non-paginated';
 
-  beforeEach(() => {
-    db = clone(usersDb);
-    app = feathersStubs.app();
-    users = feathersStubs.users(app, db);
-    verifyResetService().call(app); // define and attach verifyReset service
-    verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
+  describe(`reset ${pagination}`, () => {
+    var db;
+    var app;
+    var users;
+    var verifyReset;
+    const password = '123456';
+
+    beforeEach(() => {
+      db = clone(usersDb);
+      app = feathersStubs.app();
+      users = feathersStubs.users(app, db, ifNonPaginated);
+      verifyResetService().call(app); // define and attach verifyReset service
+      verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
+    });
+
+    it('verifies valid token', (done) => {
+      const resetToken = '000';
+
+      verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
+        (err, user) => {
+          assert.strictEqual(err, null, 'err code set');
+          assert.strictEqual(user.isVerified, true, 'isVerified not true');
+          assert.strictEqual(user.resetToken, null, 'resetToken not null');
+          assert.strictEqual(user.resetExpires, null, 'resetExpires not null');
+
+          assert.isString(db[0].password, 'password not a string');
+          assert.equal(db[0].password.length, 60, 'password wrong length');
+
+          done();
+        });
+    });
+
+    it('error on unverified user', (done) => {
+      const resetToken = '222';
+      verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
+        (err, user) => {
+          assert.equal(err.message, 'Email is not verified.');
+          assert.deepEqual(err.errors, { $className: 'notVerified' });
+
+          done();
+        });
+    });
+
+    it('error on expired token', (done) => {
+      const resetToken = '111';
+      verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
+        (err, user) => {
+          assert.equal(err.message, 'Reset token has expired.');
+          assert.deepEqual(err.errors, { $className: 'expired' });
+
+          done();
+        });
+    });
+
+    it('error on token not found', (done) => {
+      const resetToken = '999';
+      verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
+        (err, user) => {
+          assert.equal(err.message, 'Reset token not found.');
+          assert.deepEqual(err.errors, { $className: 'notFound' });
+
+          done();
+        });
+    });
   });
 
-  it('verifies valid token', (done) => {
-    const resetToken = '000';
+  describe(`reset with email ${pagination}`, () => {
+    var db;
+    var app;
+    var users;
+    var spyEmailer;
+    var verifyReset;
+    const password = '123456';
 
-    verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
-      (err, user) => {
-        assert.strictEqual(err, null, 'err code set');
-        assert.strictEqual(user.isVerified, true, 'isVerified not true');
-        assert.strictEqual(user.resetToken, null, 'resetToken not null');
-        assert.strictEqual(user.resetExpires, null, 'resetExpires not null');
+    beforeEach(() => {
+      db = clone(usersDb);
+      app = feathersStubs.app();
+      users = feathersStubs.users(app, db, ifNonPaginated);
+      spyEmailer = new SpyOn(emailer);
 
-        assert.isString(db[0].password, 'password not a string');
-        assert.equal(db[0].password.length, 60, 'password wrong length');
+      verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
+      verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
+    });
 
-        done();
-      });
-  });
+    it('verifies valid token', (done) => {
+      const resetToken = '000';
 
-  it('error on unverified user', (done) => {
-    const resetToken = '222';
-    verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
-      (err, user) => {
-        assert.equal(err.message, 'Email is not verified.');
-        assert.deepEqual(err.errors, { $className: 'notVerified' });
+      verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
+        (err, user) => {
+          assert.strictEqual(err, null, 'err code set');
+          assert.strictEqual(user.isVerified, true, 'isVerified not true');
+          assert.strictEqual(user.resetToken, null, 'resetToken not null');
+          assert.strictEqual(user.resetExpires, null, 'resetExpires not null');
 
-        done();
-      });
-  });
+          const hash = db[0].password;
+          assert.isString(hash, 'password not a string');
+          assert.equal(hash.length, 60, 'password wrong length');
 
-  it('error on expired token', (done) => {
-    const resetToken = '111';
-    verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
-      (err, user) => {
-        assert.equal(err.message, 'Reset token has expired.');
-        assert.deepEqual(err.errors, { $className: 'expired' });
+          assert.deepEqual(spyEmailer.result(), [
+            { args: ['reset', Object.assign({}, user, { password: hash }), {}], result: [null] },
+          ]);
 
-        done();
-      });
-  });
-
-  it('error on token not found', (done) => {
-    const resetToken = '999';
-    verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
-      (err, user) => {
-        assert.equal(err.message, 'Reset token not found.');
-        assert.deepEqual(err.errors, { $className: 'notFound' });
-
-        done();
-      });
-  });
-});
-
-describe('reset with email', () => {
-  var db;
-  var app;
-  var users;
-  var spyEmailer;
-  var verifyReset;
-  const password = '123456';
-
-  beforeEach(() => {
-    db = clone(usersDb);
-    app = feathersStubs.app();
-    users = feathersStubs.users(app, db);
-    spyEmailer = new SpyOn(emailer);
-
-    verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset service
-    verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
-  });
-
-  it('verifies valid token', (done) => {
-    const resetToken = '000';
-
-    verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
-      (err, user) => {
-        assert.strictEqual(err, null, 'err code set');
-        assert.strictEqual(user.isVerified, true, 'isVerified not true');
-        assert.strictEqual(user.resetToken, null, 'resetToken not null');
-        assert.strictEqual(user.resetExpires, null, 'resetExpires not null');
-
-        const hash = db[0].password;
-        assert.isString(hash, 'password not a string');
-        assert.equal(hash.length, 60, 'password wrong length');
-
-        assert.deepEqual(spyEmailer.result(), [
-          { args: ['reset', Object.assign({}, user, { password: hash }), {}], result: [null] },
-        ]);
-
-        done();
-      });
+          done();
+        });
+    });
   });
 });
 

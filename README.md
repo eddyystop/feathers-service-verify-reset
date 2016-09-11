@@ -5,14 +5,18 @@ Adds user email verification and password reset capabilities to local
 Email addr verification and handling forgotten passwords are common features
 these days. This package adds that functionality to [Feathersjs](http://docs.feathersjs.com/).
 
-The optional transactional emails sent contain a link including a 30-char slug.
-The slug has a configurable expiry delay. Emails may be sent for:
+The optional transactional emails sent may contain a link including a 30-char slug.
+The slug has a configurable expiry delay.
 
-- Email addr verification when a new user is created.
+Emails may be sent for:
+
+- Email addr verification request when a new user is created.
 - Resending a new email addr verification, e.g. previous verification email was lost or is expired.
 - Successful user verification.
-- Sending an email when the password is forgotten.
+- Sending an email to reset the password when the password is forgotten.
 - Successful password reset for a forgotten password.
+- Manual change of a password.
+- The previous email address is notified of a change of email address.
 
 The server does not handle any interactions with the user.
 Leaving it a pure API server, lets it be used with both native and browser clients.
@@ -23,7 +27,7 @@ Leaving it a pure API server, lets it be used with both native and browser clien
 ## Code Example
 
 The folder `example` presents a full featured server/browser implementation
-whose UI lets you try every API.  
+whose UI lets you try the API.  
 
 ### Server
 

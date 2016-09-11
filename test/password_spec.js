@@ -59,105 +59,109 @@ describe('verifyReset::password - setup', () => {
 
 // Tests
 
-describe('verifyReset::password', () => {
-  var db;
-  var app;
-  var users;
-  var verifyReset;
+['paginated', 'non-paginated'].forEach(pagination => {
+  const ifNonPaginated = pagination === 'non-paginated';
 
-  beforeEach(() => {
-    db = clone(usersDb);
-    app = feathersStubs.app();
-    users = feathersStubs.users(app, db);
-    verifyResetService().call(app); // define and attach verifyReset service
-    verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
-  });
+  describe(`verifyReset::password ${pagination}`, () => {
+    var db;
+    var app;
+    var users;
+    var verifyReset;
 
-  it('updates verified user', function (done) {
-    this.timeout(9000);
-    const i = 1;
-    const user = clone(db[i]);
+    beforeEach(() => {
+      db = clone(usersDb);
+      app = feathersStubs.app();
+      users = feathersStubs.users(app, db, ifNonPaginated);
+      verifyResetService().call(app); // define and attach verifyReset service
+      verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
+    });
 
-    verifyReset.create({
-      action: 'password',
-      value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
-    }, { user }, (err, user) => {
-      assert.strictEqual(err, null, 'err code set');
-      assert.strictEqual(user.isVerified, true, 'isVerified not true');
-      assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
+    it('updates verified user', function (done) {
+      this.timeout(9000);
+      const i = 1;
+      const user = clone(db[i]);
 
-      done();
+      verifyReset.create({
+        action: 'password',
+        value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
+      }, { user }, (err, user) => {
+        assert.strictEqual(err, null, 'err code set');
+        assert.strictEqual(user.isVerified, true, 'isVerified not true');
+        assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
+
+        done();
+      });
+    });
+
+    it('updates unverified user', function (done) {
+      this.timeout(9000);
+      const i = 0;
+      const user = clone(db[i]);
+
+      verifyReset.create({
+        action: 'password',
+        value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
+      }, { user }, (err, user) => {
+        assert.strictEqual(err, null, 'err code set');
+        assert.strictEqual(user.isVerified, false, 'isVerified not false');
+        assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
+
+        done();
+      });
+    });
+
+    it('error on wrong password', function (done) {
+      this.timeout(9000);
+      const i = 0;
+      const user = clone(db[i]);
+
+      verifyReset.create({
+        action: 'password', value: { oldPassword: 'fdfgfghghghj', password: user.plainNewPassword },
+      }, { user }, (err, user) => {
+        assert.equal(err.message, 'Current password is incorrect.');
+        assert.deepEqual(err.errors, { oldPassword: 'Current password is incorrect.' });
+
+        done();
+      });
     });
   });
 
-  it('updates unverified user', function (done) {
-    this.timeout(9000);
-    const i = 0;
-    const user = clone(db[i]);
+  describe(`verifyReset::password with email ${pagination}`, () => {
+    var db;
+    var app;
+    var users;
+    var spyEmailer;
+    var verifyReset;
 
-    verifyReset.create({
-      action: 'password',
-      value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
-    }, { user }, (err, user) => {
-      assert.strictEqual(err, null, 'err code set');
-      assert.strictEqual(user.isVerified, false, 'isVerified not false');
-      assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
+    beforeEach(() => {
+      db = clone(usersDb);
+      app = feathersStubs.app();
+      users = feathersStubs.users(app, db, ifNonPaginated);
+      spyEmailer = new SpyOn(emailer);
 
-      done();
+      verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
+      verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
     });
-  });
 
-  it('error on wrong password', function (done) {
-    this.timeout(9000);
-    const i = 0;
-    const user = clone(db[i]);
+    it('updates verified user', function (done) {
+      this.timeout(9000);
+      const i = 1;
+      const user = clone(db[i]);
 
-    verifyReset.create({
-      action: 'password', value: { oldPassword: 'fdfgfghghghj', password: user.plainNewPassword },
-    }, { user }, (err, user) => {
-      assert.equal(err.message, 'Current password is incorrect.');
-      assert.deepEqual(err.errors, { oldPassword: 'Current password is incorrect.' });
+      verifyReset.create({
+        action: 'password',
+        value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
+      }, { user }, (err, user) => {
+        assert.strictEqual(err, null, 'err code set');
+        assert.strictEqual(user.isVerified, true, 'isVerified not true');
+        assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
 
-      done();
-    });
-  });
-});
+        assert.deepEqual(spyEmailer.result(), [
+          { args: ['password', db[i], { user: db[i] }], result: [null] },
+        ]);
 
-describe('verifyReset::password with email', () => {
-  var db;
-  var app;
-  var users;
-  var spyEmailer;
-  var verifyReset;
-
-  beforeEach(() => {
-    db = clone(usersDb);
-    app = feathersStubs.app();
-    users = feathersStubs.users(app, db);
-    spyEmailer = new SpyOn(emailer);
-
-    verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset service
-    verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
-  });
-
-  it('updates verified user', function (done) {
-    this.timeout(9000);
-    const i = 1;
-    const user = clone(db[i]);
-
-    verifyReset.create({
-      action: 'password',
-      value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
-    }, { user }, (err, user) => {
-      assert.strictEqual(err, null, 'err code set');
-      assert.strictEqual(user.isVerified, true, 'isVerified not true');
-      assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
-
-      assert.deepEqual(spyEmailer.result(), [
-        { args: ['password', db[i], { user: db[i] }], result: [null] },
-      ]);
-
-      done();
+        done();
+      });
     });
   });
 });
