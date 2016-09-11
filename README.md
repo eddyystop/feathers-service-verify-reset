@@ -1,11 +1,18 @@
 ## feathers-service-verify-reset
-Adds user email verification and password reset capabilities to local
+Adds user email verification, forgotten password reset, and other capabilities to local
 [`feathers-authentication`](http://docs.feathersjs.com/authentication/local.html).
 
-Email addr verification and handling forgotten passwords are common features
-these days. This package adds that functionality to [Feathersjs](http://docs.feathersjs.com/).
+- Checking that values for fields like email and username are unique in the users file.
+- Hooks for adding a new user.
+- Send another email address verification email.
+- Process an email address verification response.
+- Send email for a forgotten password.
+- Process a forgotten password email response.
+- Process password change.
+- Process email address change.
 
-The optional transactional emails sent may contain a link including a 30-char slug.
+The optional transactional emails sent for email address verification and forgotten password
+include a link containing a 30-char slug.
 The slug has a configurable expiry delay.
 
 Emails may be sent for:

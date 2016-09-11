@@ -63,7 +63,8 @@ verify token instead of their email address.
 verifyReset.resendVerify('feathers@feathers.com', cb); // or { email: 'feathers@feathers.com' } 
 verifyReset.resendVerify({ verifyToken: '...' }, cb);
 ````
-- Non-paginated users files are now handled properly. **Bug.**
+- Non-paginated `users` files are now handled properly. **Bug.**
+All tests include tests for non-paginated `users`.
 - `err.errors[fieldName]` or `err.errors.$className` have been added to BadRequest responses
 to facilitate form handling, logic or internationalization,
 - **Example.** Email handler expanded to show new email options.
@@ -75,4 +76,4 @@ controls how long the sign up verification email is valid for (ms).
  
 For catching bugs, pull requests, comments to:
 - [codingfriend1](https://github.com/codingfriend1)
-for [non-paginated users](https://github.com/eddyystop/feathers-service-verify-reset/pull/5).
+for [non-paginated users](https://github.com/eddyystop/feathers-service-verify-reset/issues/4).
