@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const errors = require('feathers-errors');
 const auth = require('feathers-authentication').hooks;
 const bcrypt = require('bcryptjs');
+const hooks = require('feathers-hooks-common');
 const utils = require('feathers-hooks-common/lib/utils');
 const debug = require('debug')('verifyReset');
 
@@ -96,22 +97,12 @@ module.exports.service = function (options) {
       },
     });
 
-    const iff = (ifFcn, hookFcn) => (hook) => {
-      const check = ifFcn(hook);
-
-      if (check && typeof check.then === 'function') {
-        return check.then(check1 => (check1 ? hookFcn(hook) : hook));
-      }
-
-      return check ? hookFcn(hook) : undefined;
-    };
-
     const isAction = (...args) => hook => args.indexOf(hook.data.action) !== -1;
 
     app.service(path).before({
       create: [
-        iff(isAction('password', 'email'), auth.verifyToken()),
-        iff(isAction('password', 'email'), auth.populateUser()),
+        hooks.iff(isAction('password', 'email'), auth.verifyToken()),
+        hooks.iff(isAction('password', 'email'), auth.populateUser()),
       ],
     });
 
