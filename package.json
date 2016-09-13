@@ -44,6 +44,7 @@
   },
   "homepage": "https://github.com/eddyystop/feathers-service-verify-reset#readme",
   "dependencies": {
+    "bcryptjs": "^2.3.0",
     "crypto": "^0.0.3",
     "debug": "^2.2.0",
     "feathers-authentication": "^0.7.9",
