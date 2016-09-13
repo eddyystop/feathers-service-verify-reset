@@ -60,6 +60,21 @@ const usersDb = [
         });
     });
 
+    it('handles empty query returning nothing', function (done) {
+      this.timeout(9000);
+
+      verifyReset.create({
+        action: 'unique',
+        value: { username: 'hjhjhj' },
+      })
+        .then(() => {
+          done();
+        })
+        .catch(() => {
+          assert.fail(true, false, 'test unexpectedly failed');
+        });
+    });
+
     it('finds single query on single item', function (done) {
       this.timeout(9000);
       const username = 'john a';

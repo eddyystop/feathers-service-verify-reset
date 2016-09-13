@@ -122,7 +122,7 @@ module.exports.service = function (options) {
           users.find({ query: { [prop]: uniques[prop].trim() /* , $limit: 1 */ } }) // 1 as unique
             .then(data => {
               const items = Array.isArray(data) ? data : data.data;
-              if (items.length > 1 || items[0]._id !== ownId) {
+              if (items.length > 1 || (items.length === 1 && items[0]._id !== ownId)) {
                 errs[prop] = 'Already taken.';
               }
 
