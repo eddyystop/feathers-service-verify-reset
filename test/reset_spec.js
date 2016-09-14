@@ -50,7 +50,6 @@ const usersDb = [
 
           assert.isString(db[0].password, 'password not a string');
           assert.equal(db[0].password.length, 60, 'password wrong length');
-
           done();
         });
     });

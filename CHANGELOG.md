@@ -1,5 +1,10 @@
 # Notable changes to feathers-service-verify-reset
 
+## 0.5.0
+### Internal changes
+- Supports DBs that use _id_ for their key instead of __id_ e.g. Postgress.
+Only the 'query' option is tested for this until I figure out how to test the others.
+
 ## 0.4.0
 
 (1) The `/lib/client` wrapper may now be used with `require` or `import`,

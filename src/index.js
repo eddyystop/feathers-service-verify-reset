@@ -122,8 +122,9 @@ module.exports.service = function (options) {
           users.find({ query: { [prop]: uniques[prop].trim() /* , $limit: 1 */ } }) // 1 as unique
             .then(data => {
               const items = Array.isArray(data) ? data : data.data;
-              let id = items[0].id | items[0]._id;
-              if (items.length > 1 || (items.length === 1 && id !== ownId)) {
+              if (items.length > 1
+                || (items.length === 1 && (items[0].id || items[0]._id) !== ownId)
+              ) {
                 errs[prop] = 'Already taken.';
               }
 
@@ -178,7 +179,7 @@ module.exports.service = function (options) {
           }
 
           addVerifyProps(user, {}, (err, user1) => { // todo options not passed
-            users.update(user1.id | user1._id, user1, {},
+            users.update(user1.id || user1._id, user1, {},
               (err1, user2) => { // careful, hooks may have stripped some fields out of user2
                 if (err1) { throw new errors.GeneralError(err1); }
 
@@ -230,7 +231,7 @@ module.exports.service = function (options) {
             ));
           }
 
-          users.update(user.id | user._id, user, {},
+          users.update(user.id || user._id, user, {},
             (err, user1) => {
               if (err) { throw new errors.GeneralError(err); }
               emailer('verify', clone(user), params, (err1) => {
@@ -267,7 +268,7 @@ module.exports.service = function (options) {
             user.resetExpires = Date.now() + resetDelay;
             user.resetToken = buf.toString('hex');
 
-            users.update(user.id | user._id, user, {},
+            users.update(user.id || user._id, user, {},
               (err1, user1) => {
                 if (err1) { throw new errors.GeneralError(err1); }
 
@@ -326,7 +327,7 @@ module.exports.service = function (options) {
               user.resetExpires = null;
               user.resetToken = null;
 
-              users.update(user.id | user._id, user, {},
+              users.update(user.id || user._id, user, {},
                 (err, user1) => {
                   if (err) { throw new errors.GeneralError(err); }
 
@@ -370,7 +371,7 @@ module.exports.service = function (options) {
             // update user information
             user.password = hook1.data.password;
 
-            users.update(user.id | user._id, user, {}, (err1, user1) => {
+            users.update(user.id || user._id, user, {}, (err1, user1) => {
               if (err1) {
                 throw new errors.GeneralError(err1);
               }
@@ -402,7 +403,7 @@ module.exports.service = function (options) {
         // update user information
         user.email = email;
 
-        users.update(user.id | user._id, user, {}, (err1, user2) => {
+        users.update(user.id || user._id, user, {}, (err1, user2) => {
           if (err1) {
             throw new errors.GeneralError(err1);
           }
