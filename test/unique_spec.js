@@ -16,12 +16,6 @@ const usersDb = [
   { _id: 'c', email: 'c', username: 'john b' },
 ];
 
-const usersDb2 = [
-  { id: 'a', email: 'a', username: 'john a' },
-  { id: 'b', email: 'b', username: 'john b' },
-  { id: 'c', email: 'c', username: 'john b' },
-];
-
 // Tests
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
@@ -34,9 +28,9 @@ const usersDb2 = [
       var verifyReset;
 
       beforeEach(() => {
-        db = clone(idType === '_id' ? usersDb : usersDb2);
+        db = clone(usersDb);
         app = feathersStubs.app();
-        users = feathersStubs.users(app, db, ifNonPaginated);
+        users = feathersStubs.users(app, db, ifNonPaginated, idType);
         verifyResetService().call(app); // define and attach verifyReset service
         verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
       });

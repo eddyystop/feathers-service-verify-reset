@@ -18,99 +18,100 @@ const usersDb = [
 ];
 
 // Tests
+['_id', 'id'].forEach(idType => {
+  ['paginated', 'non-paginated'].forEach(pagination => {
+    const ifNonPaginated = pagination === 'non-paginated';
 
-['paginated', 'non-paginated'].forEach(pagination => {
-  const ifNonPaginated = pagination === 'non-paginated';
+    describe(`verifyReset::verify ${pagination} ${idType}`, () => {
+      var db;
+      var app;
+      var users;
+      var verifyReset;
 
-  describe(`verify ${pagination}`, () => {
-    var db;
-    var app;
-    var users;
-    var verifyReset;
+      beforeEach(() => {
+        db = clone(usersDb);
+        app = feathersStubs.app();
+        users = feathersStubs.users(app, db, ifNonPaginated, idType);
+        verifyResetService().call(app); // define and attach verifyReset service
+        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+      });
 
-    beforeEach(() => {
-      db = clone(usersDb);
-      app = feathersStubs.app();
-      users = feathersStubs.users(app, db, ifNonPaginated);
-      verifyResetService().call(app); // define and attach verifyReset service
-      verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
-    });
+      it('verifies valid token', (done) => {
+        const verifyToken = '000';
 
-    it('verifies valid token', (done) => {
-      const verifyToken = '000';
+        verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err, user) => {
+          assert.strictEqual(err, null, 'err code set');
+          assert.strictEqual(user.isVerified, true, 'isVerified not true');
+          assert.strictEqual(user.verifyToken, null, 'verifyToken not null');
+          assert.strictEqual(user.verifyExpires, null, 'verifyExpires not null');
 
-      verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err, user) => {
-        assert.strictEqual(err, null, 'err code set');
-        assert.strictEqual(user.isVerified, true, 'isVerified not true');
-        assert.strictEqual(user.verifyToken, null, 'verifyToken not null');
-        assert.strictEqual(user.verifyExpires, null, 'verifyExpires not null');
+          done();
+        });
+      });
 
-        done();
+      it('error on expired token', (done) => {
+        const verifyToken = '111';
+        verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err) => {
+          assert.equal(err.message, 'Verification token has expired.');
+          assert.equal(err.errors.$className, 'expired');
+
+          done();
+        });
+      });
+
+      it('error on null token', (done) => {
+        const verifyToken = null;
+        verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err) => {
+          assert.equal(err.message, 'User is already verified.');
+          assert.equal(err.errors.$className, 'alreadyVerified');
+
+          done();
+        });
+      });
+
+      it('error on token not found', (done) => {
+        const verifyToken = '999';
+        verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err) => {
+          assert.equal(err.message, 'Verification token was not issued.');
+          assert.equal(err.errors.$className, 'notIssued');
+
+          done();
+        });
       });
     });
 
-    it('error on expired token', (done) => {
-      const verifyToken = '111';
-      verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err) => {
-        assert.equal(err.message, 'Verification token has expired.');
-        assert.equal(err.errors.$className, 'expired');
+    describe(`verifyReset::verify with email ${pagination} ${idType}`, () => {
+      var db;
+      var app;
+      var users;
+      var spyEmailer;
+      var verifyReset;
 
-        done();
+      beforeEach(() => {
+        db = clone(usersDb);
+        app = feathersStubs.app();
+        users = feathersStubs.users(app, db, ifNonPaginated, idType);
+        spyEmailer = new SpyOn(emailer);
+
+        verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
+        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
       });
-    });
 
-    it('error on null token', (done) => {
-      const verifyToken = null;
-      verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err) => {
-        assert.equal(err.message, 'User is already verified.');
-        assert.equal(err.errors.$className, 'alreadyVerified');
+      it('verifies valid token', (done) => {
+        const verifyToken = '000';
 
-        done();
-      });
-    });
+        verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err, user) => {
+          assert.strictEqual(err, null, 'err code set');
+          assert.strictEqual(user.isVerified, true, 'isVerified not true');
+          assert.strictEqual(user.verifyToken, null, 'verifyToken not null');
+          assert.strictEqual(user.verifyExpires, null, 'verifyExpires not null');
 
-    it('error on token not found', (done) => {
-      const verifyToken = '999';
-      verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err) => {
-        assert.equal(err.message, 'Verification token was not issued.');
-        assert.equal(err.errors.$className, 'notIssued');
+          assert.deepEqual(spyEmailer.result(), [
+            { args: ['verify', user, {}], result: [null] },
+          ]);
 
-        done();
-      });
-    });
-  });
-
-  describe(`verify with email ${pagination}`, () => {
-    var db;
-    var app;
-    var users;
-    var spyEmailer;
-    var verifyReset;
-
-    beforeEach(() => {
-      db = clone(usersDb);
-      app = feathersStubs.app();
-      users = feathersStubs.users(app, db, ifNonPaginated);
-      spyEmailer = new SpyOn(emailer);
-
-      verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
-      verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset service
-    });
-
-    it('verifies valid token', (done) => {
-      const verifyToken = '000';
-
-      verifyReset.create({ action: 'verify', value: verifyToken }, {}, (err, user) => {
-        assert.strictEqual(err, null, 'err code set');
-        assert.strictEqual(user.isVerified, true, 'isVerified not true');
-        assert.strictEqual(user.verifyToken, null, 'verifyToken not null');
-        assert.strictEqual(user.verifyExpires, null, 'verifyExpires not null');
-
-        assert.deepEqual(spyEmailer.result(), [
-          { args: ['verify', user, {}], result: [null] },
-        ]);
-
-        done();
+          done();
+        });
       });
     });
   });

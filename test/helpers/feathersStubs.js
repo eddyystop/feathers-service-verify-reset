@@ -35,11 +35,21 @@ module.exports.app = function app(config) {
  * Return a stub for feathers' users service
  *
  * @param {Object} app - stub
- * @param {Array.Object} usersDb - is the database of users
+ * @param {Array.Object} usersDb - is the database of users, with _id as the key
  * @param {boolean} nonPaginated - fake a non-paginated db service
+ * @param {string} idProp - prop name to use as key. default is '_id'.
+ *    This allows us to test DBs like Postgress which uses id as its key.
  * @returns {Object} feather' service for route /users
  */
-module.exports.users = function users(app, usersDb, nonPaginated) {
+module.exports.users = function users(app, usersDb, nonPaginated, idProp = '_id') {
+  if (idProp !== '_id') {
+    usersDb.forEach(user => {
+      user[idProp] = user._id;
+      user._id = undefined;
+      delete users._id;
+    });
+  }
+
   const usersConfig = {
     find(params) { // always use as a Promise
       const data = sift(params.query || {}, usersDb);
@@ -53,10 +63,10 @@ module.exports.users = function users(app, usersDb, nonPaginated) {
     },
     update(id, user, params, cb) { // always use with a callback
       debug('/users update: %s %o %o', id, user, params);
-      const index = usersDb.findIndex((user1 => user1._id === id));
+      const index = usersDb.findIndex((user1 => user1[idProp] === id));
 
       if (index === -1) {
-        return cb(new Error(`users.update _id=${id} not found.`));
+        return cb(new Error(`users.update ${idProp}=${id} not found.`));
       }
 
       usersDb[index] = user;
