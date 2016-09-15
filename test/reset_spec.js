@@ -34,7 +34,7 @@ const usersDb = [
         db = clone(usersDb);
         app = feathersStubs.app();
         users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        verifyResetService().call(app); // define and attach verifyReset service
+        verifyResetService({ testMode: true }).call(app); // define and attach verifyReset service
         verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
       });
 
@@ -88,6 +88,38 @@ const usersDb = [
       });
     });
 
+    describe(`verifyReset::reset user is sanitized ${pagination} ${idType}`, () => {
+      var db;
+      var app;
+      var users;
+      var verifyReset;
+      const password = '123456';
+
+      beforeEach(() => {
+        db = clone(usersDb);
+        app = feathersStubs.app();
+        users = feathersStubs.users(app, db, ifNonPaginated, idType);
+        verifyResetService().call(app); // define and attach verifyReset service
+        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+      });
+
+      it('verifies valid token', (done) => {
+        const resetToken = '000';
+
+        verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
+          (err, user) => {
+            assert.strictEqual(err, null, 'err code set');
+            assert.strictEqual(user.isVerified, true, 'isVerified not true');
+            assert.strictEqual(user.resetToken, undefined, 'resetToken not undefined');
+            assert.strictEqual(user.resetExpires, undefined, 'resetExpires not undefined');
+
+            assert.isString(db[0].password, 'password not a string');
+            assert.equal(db[0].password.length, 60, 'password wrong length');
+            done();
+          });
+      });
+    });
+
     describe(`verifyReset::reset with email ${pagination} ${idType}`, () => {
       var db;
       var app;
@@ -102,7 +134,7 @@ const usersDb = [
         users = feathersStubs.users(app, db, ifNonPaginated, idType);
         spyEmailer = new SpyOn(emailer);
 
-        verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
+        verifyResetService({ emailer: spyEmailer.callWithCb, testMode: true }).call(app);
         verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
       });
 

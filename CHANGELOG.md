@@ -1,5 +1,9 @@
 # Notable changes to feathers-service-verify-reset
 
+## 0.5.2
+### Internal changes
+- User item returned on callback is now better sanitized.
+
 ## 0.5.0
 ### Internal changes
 - Supports DBs that use _id_ for their key instead of __id_ e.g. Postgress.

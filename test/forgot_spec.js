@@ -33,7 +33,7 @@ const usersDb = [
         db = clone(usersDb);
         app = feathersStubs.app();
         users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        verifyResetService().call(app); // define and attach verifyReset service
+        verifyResetService({ testMode: true }).call(app); // define and attach verifyReset service
         verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
       });
 
@@ -70,6 +70,33 @@ const usersDb = [
       });
     });
 
+    describe(`verifyReset::forgot user is santitized ${pagination} ${idType}`, () => {
+      var db;
+      var app;
+      var users;
+      var verifyReset;
+
+      beforeEach(() => {
+        db = clone(usersDb);
+        app = feathersStubs.app();
+        users = feathersStubs.users(app, db, ifNonPaginated, idType);
+        verifyResetService().call(app); // define and attach verifyReset service
+        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+      });
+
+      it('updates verified user', (done) => {
+        const email = 'b';
+        verifyReset.create({ action: 'forgot', value: email }, {}, (err, user) => {
+          assert.strictEqual(err, null, 'err code set');
+          assert.strictEqual(user.isVerified, true, 'isVerified not true');
+          assert.strictEqual(user.resetToken, undefined, 'resetToken not undefined');
+          assert.strictEqual(user.resetExpires, undefined, 'resetExpires not undefined');
+
+          done();
+        });
+      });
+    });
+
     describe(`verifyReset::forgot with email ${pagination} ${idType}`, () => {
       var db;
       var app;
@@ -83,7 +110,7 @@ const usersDb = [
         users = feathersStubs.users(app, db, ifNonPaginated, idType);
         spyEmailer = new SpyOn(emailer);
 
-        verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
+        verifyResetService({ emailer: spyEmailer.callWithCb, testMode: true }).call(app);
         verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
       });
 

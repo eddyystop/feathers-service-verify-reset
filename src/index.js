@@ -28,6 +28,7 @@ const defaultResetDelay = 1000 * 60 * 60 * 2; // 2 hours
  *
  * options.delay - duration for sign up email verification token in ms. Default is 5 days.
  * options.resetDelay - duration for password reset token in ms. Default is 2 hours.
+ * options.testMode - user in fo returned contains all info except password.
  *
  * @returns {Function} Featherjs service
  *
@@ -415,9 +416,27 @@ module.exports.service = function (options) {
     }
 
     function getClientUser(user) {
-      const client = clone(user);
-      delete client.password;
-      return client;
+      const user1 = clone(user);
+
+      if (!options.testMode) {
+        delete user1.password;
+
+        // minimize deletes as they have a bad effect on V8 optimizations
+        if ('verifyExpires' in user1) {
+          delete user1.verifyExpires;
+        }
+        if ('verifyToken' in user1) {
+          delete user1.verifyToken;
+        }
+        if ('resetExpires' in user1) {
+          delete user1.resetExpires;
+        }
+        if ('resetToken' in user1) {
+          delete user1.resetToken;
+        }
+      }
+
+      return user1;
     }
   };
 };
