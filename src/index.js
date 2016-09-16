@@ -28,7 +28,6 @@ const defaultResetDelay = 1000 * 60 * 60 * 2; // 2 hours
  *
  * options.delay - duration for sign up email verification token in ms. Default is 5 days.
  * options.resetDelay - duration for password reset token in ms. Default is 2 hours.
- * options.testMode - user in fo returned contains all info except password.
  *
  * @returns {Function} Featherjs service
  *
@@ -184,9 +183,9 @@ module.exports.service = function (options) {
               (err1, user2) => { // careful, hooks may have stripped some fields out of user2
                 if (err1) { throw new errors.GeneralError(err1); }
 
-                emailer('resend', clone(user1), params, (err2) => {
+                emailer('resend', sanitizeUserForEmail(user1), params, (err2) => {
                   debug('resend. Completed.');
-                  cb(err2, getClientUser(user2));
+                  cb(err2, sanitizeUserForClient(user2));
                 });
               });
           });
@@ -235,9 +234,9 @@ module.exports.service = function (options) {
           users.update(user.id || user._id, user, {},
             (err, user1) => {
               if (err) { throw new errors.GeneralError(err); }
-              emailer('verify', clone(user), params, (err1) => {
+              emailer('verify', sanitizeUserForEmail(user), params, (err1) => {
                 debug('verify. Completed.');
-                cb(err1, getClientUser(user1));
+                cb(err1, sanitizeUserForClient(user1));
               });
             });
         })
@@ -273,9 +272,9 @@ module.exports.service = function (options) {
               (err1, user1) => {
                 if (err1) { throw new errors.GeneralError(err1); }
 
-                emailer('forgot', clone(user1), params, (err2) => {
+                emailer('forgot', sanitizeUserForEmail(user1), params, (err2) => {
                   debug('forgot. Completed.');
-                  cb(err2, getClientUser(user1));
+                  cb(err2, sanitizeUserForClient(user1));
                 });
               });
           });
@@ -332,9 +331,9 @@ module.exports.service = function (options) {
                 (err, user1) => {
                   if (err) { throw new errors.GeneralError(err); }
 
-                  emailer('reset', clone(user1), params, (err1) => {
+                  emailer('reset', sanitizeUserForEmail(user1), params, (err1) => {
                     debug('reset. Completed.');
-                    return cb(err1, getClientUser(user1));
+                    return cb(err1, sanitizeUserForClient(user1));
                   });
                 });
             })
@@ -348,93 +347,109 @@ module.exports.service = function (options) {
     }
 
     function passwordChange(user, oldPassword, password, cb) {
-      // compare old password to encrypted current password
-      bcrypt.compare(oldPassword, user.password, (err, data) => {
-        if (err || !data) {
-          return cb(new errors.BadRequest('Current password is incorrect.',
-            { errors: { oldPassword: 'Current password is incorrect.' } }
-          ));
-        }
+      // get user to obtain current password
+      users.find({ query: { email: user.email } })
+        .then(data => {
+          const user1 = Array.isArray(data) ? data[0] : data.data[0]; // email is unique
 
-        // encrypt the new password
-        const hook = {
-          type: 'before',
-          data: { password },
-          params: { provider: null },
-          app: {
-            get(str) {
-              return app.get(str);
-            },
-          },
-        };
-        auth.hashPassword()(hook)
-          .then(hook1 => {
+          // compare old password to encrypted current password
+          bcrypt.compare(oldPassword, user1.password, (err, data1) => {
+            if (err || !data1) {
+              return cb(new errors.BadRequest('Current password is incorrect.',
+                { errors: { oldPassword: 'Current password is incorrect.' } }
+              ));
+            }
+
+            // encrypt the new password
+            const hook = {
+              type: 'before',
+              data: { password },
+              params: { provider: null },
+              app: {
+                get(str) {
+                  return app.get(str);
+                },
+              },
+            };
+            auth.hashPassword()(hook)
+              .then(hook1 => {
+                // update user information
+                user1.password = hook1.data.password;
+
+                users.update(user1.id || user1._id, user1, {}, (err1, user2) => {
+                  if (err1) {
+                    throw new errors.GeneralError(err1);
+                  }
+
+                  // send email
+                  emailer('password', sanitizeUserForEmail(user2), params, (err2) => {
+                    debug('password. Completed.');
+                    cb(err2, sanitizeUserForClient(user2));
+                  });
+                });
+              });
+          });
+        })
+        .catch(err => {
+          cb(new errors.GeneralError(err));
+        });
+    }
+
+    // note this call does not update the authenticated user info in hooks.params.user.
+    function emailChange(user, password, email, cb) {
+      // get user to obtain current password
+      const idType = user._id ? '_id' : 'id';
+      users.find({ query: { [idType]: user[idType] } })
+        .then(data => {
+          const user1 = Array.isArray(data) ? data[0] : data.data[0]; // email is unique
+
+          // compare old password to encrypted current password
+          bcrypt.compare(password, user1.password, (err, data1) => {
+            if (err || !data1) {
+              return cb(new errors.BadRequest('Password is incorrect.',
+                { errors: { password: 'Password is incorrect.' } }
+              ));
+            }
+
+            // send email
+            const user3 = sanitizeUserForEmail(user1);
+            user3.newEmail = email;
+            emailer('email', sanitizeUserForEmail(user3), params, () => {});
+
             // update user information
-            user.password = hook1.data.password;
+            user1.email = email;
 
-            users.update(user.id || user._id, user, {}, (err1, user1) => {
+            users.update(user1.id || user1._id, user1, {}, (err1, user2) => {
               if (err1) {
                 throw new errors.GeneralError(err1);
               }
 
-              // send email
-              emailer('password', clone(user1), params, (err2) => {
-                debug('password. Completed.');
-                cb(err2, getClientUser(user1));
-              });
+              debug('email. Completed.');
+              cb(err1, sanitizeUserForClient(user2));
             });
           });
-      });
-    }
-
-    function emailChange(user, password, email, cb) {
-      // compare old password to encrypted current password
-      bcrypt.compare(password, user.password, (err, data) => {
-        if (err || !data) {
-          return cb(new errors.BadRequest('Password is incorrect.',
-            { errors: { password: 'Password is incorrect.' } }
-          ));
-        }
-
-        // send email
-        const user1 = clone(user);
-        user1.newEmail = email;
-        emailer('email', clone(user1), params, () => {});
-
-        // update user information
-        user.email = email;
-
-        users.update(user.id || user._id, user, {}, (err1, user2) => {
-          if (err1) {
-            throw new errors.GeneralError(err1);
-          }
-
-          debug('email. Completed.');
-          cb(err1, getClientUser(user2));
+        })
+        .catch(err => {
+          cb(new errors.GeneralError(err));
         });
-      });
     }
 
-    function getClientUser(user) {
+    function sanitizeUserForClient(user) {
       const user1 = clone(user);
 
-      if (!options.testMode) {
-        delete user1.password;
+      delete user1.password;
+      delete user1.verifyExpires;
+      delete user1.verifyToken;
+      delete user1.resetExpires;
+      delete user1.resetToken;
 
-        // minimize deletes as they have a bad effect on V8 optimizations
-        if ('verifyExpires' in user1) {
-          delete user1.verifyExpires;
-        }
-        if ('verifyToken' in user1) {
-          delete user1.verifyToken;
-        }
-        if ('resetExpires' in user1) {
-          delete user1.resetExpires;
-        }
-        if ('resetToken' in user1) {
-          delete user1.resetToken;
-        }
-      }
+      return user1;
+    }
+
+    function sanitizeUserForEmail(user) {
+      const user1 = clone(user);
+
+      delete user1.password;
 
       return user1;
     }

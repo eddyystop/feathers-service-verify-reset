@@ -50,110 +50,120 @@ describe('verifyReset::email - setup', () => {
 
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    const ifNonPaginated = pagination === 'non-paginated';
-
     describe(`verifyReset::email ${pagination} ${idType}`, () => {
-      var db;
-      var app;
-      var users;
-      var verifyReset;
+      const ifNonPaginated = pagination === 'non-paginated';
 
-      beforeEach(() => {
-        db = clone(usersDb);
-        app = feathersStubs.app();
-        users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        verifyResetService().call(app); // define and attach verifyReset service
-        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
-      });
+      describe('standard', () => {
+        var db;
+        var app;
+        var users;
+        var verifyReset;
 
-      it('updates verified user', function (done) {
-        this.timeout(9000);
-        const i = 1;
-        const user = clone(db[i]);
-        const email = 'b@b';
+        beforeEach(() => {
+          db = clone(usersDb);
+          app = feathersStubs.app();
+          users = feathersStubs.users(app, db, ifNonPaginated, idType);
+          verifyResetService().call(app); // define and attach verifyReset service
+          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+        });
 
-        verifyReset.create({
-          action: 'email', value: { password: user.plainPassword, email },
-        }, { user }, (err, user) => {
-          assert.strictEqual(err, null, 'err code set');
-          assert.strictEqual(user.isVerified, true, 'isVerified not true');
-          assert.equal(db[i].email, email);
+        it('updates verified user', function (done) {
+          this.timeout(9000);
+          const i = 1;
+          const user = clone(db[i]);
+          const email = 'b@b';
 
-          done();
+          verifyReset.create({
+            action: 'email', value: { password: user.plainPassword, email },
+          }, { user }, (err, user) => {
+            assert.strictEqual(err, null, 'err code set');
+            assert.strictEqual(user.isVerified, true, 'isVerified not true');
+            assert.equal(db[i].email, email);
+
+            done();
+          });
+        });
+
+        it('updates unverified user', function (done) {
+          this.timeout(9000);
+          const i = 0;
+          const user = clone(db[i]);
+          const email = 'a@a';
+
+          verifyReset.create({
+            action: 'email', value: { password: user.plainPassword, email },
+          }, { user }, (err, user) => {
+            assert.strictEqual(err, null, 'err code set');
+            assert.strictEqual(user.isVerified, false, 'isVerified not false');
+            assert.equal(db[i].email, email);
+
+            done();
+          });
+        });
+
+        it('error on wrong password', function (done) {
+          this.timeout(9000);
+          const i = 0;
+          const user = clone(db[i]);
+          const email = 'a@a';
+
+          verifyReset.create({
+            action: 'email', value: { password: 'ghghghg', email },
+          }, { user }, (err, user) => {
+            assert.equal(err.message, 'Password is incorrect.');
+            assert.deepEqual(err.errors, { password: 'Password is incorrect.' });
+
+            done();
+          });
         });
       });
 
-      it('updates unverified user', function (done) {
-        this.timeout(9000);
-        const i = 0;
-        const user = clone(db[i]);
-        const email = 'a@a';
+      describe('with email', () => {
+        var db;
+        var app;
+        var users;
+        var spyEmailer;
+        var verifyReset;
 
-        verifyReset.create({
-          action: 'email', value: { password: user.plainPassword, email },
-        }, { user }, (err, user) => {
-          assert.strictEqual(err, null, 'err code set');
-          assert.strictEqual(user.isVerified, false, 'isVerified not false');
-          assert.equal(db[i].email, email);
+        beforeEach(() => {
+          db = clone(usersDb);
+          app = feathersStubs.app();
+          users = feathersStubs.users(app, db, ifNonPaginated, idType);
+          spyEmailer = new SpyOn(emailer);
 
-          done();
+          verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
+          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
         });
-      });
 
-      it('error on wrong password', function (done) {
-        this.timeout(9000);
-        const i = 0;
-        const user = clone(db[i]);
-        const email = 'a@a';
+        it('updates verified user', function (done) {
+          this.timeout(9000);
+          const i = 1;
+          const paramsUser = clone(db[i]);
+          const oldEmail = db[i].email;
+          const email = 'b@b';
+          const emailUser = clone(db[i]);
+          emailUser.newEmail = email;
 
-        verifyReset.create({
-          action: 'email', value: { password: 'ghghghg', email },
-        }, { user }, (err, user) => {
-          assert.equal(err.message, 'Password is incorrect.');
-          assert.deepEqual(err.errors, { password: 'Password is incorrect.' });
+          verifyReset.create({
+            action: 'email', value: { password: paramsUser.plainPassword, email },
+          }, { user: paramsUser }, (err, user) => {
+            assert.strictEqual(err, null, 'err code set');
+            assert.strictEqual(user.isVerified, true, 'isVerified not true');
+            assert.equal(db[i].email, email);
 
-          done();
-        });
-      });
-    });
+            assert.deepEqual(spyEmailer.result(), [
+              {
+                args: [
+                  'email',
+                  Object.assign(sanitizeUserForEmail(db[i]), { email: oldEmail, newEmail: email }),
+                  { user: paramsUser }, // call does not change this
+                ],
+                result: [null],
+              },
+            ]);
 
-    describe(`verifyReset::email with email ${pagination} ${idType}`, () => {
-      var db;
-      var app;
-      var users;
-      var spyEmailer;
-      var verifyReset;
-
-      beforeEach(() => {
-        db = clone(usersDb);
-        app = feathersStubs.app();
-        users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        spyEmailer = new SpyOn(emailer);
-
-        verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
-        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
-      });
-
-      it('updates verified user', function (done) {
-        this.timeout(9000);
-        const i = 1;
-        const user = clone(db[i]);
-        const email = 'b@b';
-        const emailUser = clone(db[i]);
-        emailUser.newEmail = email;
-
-        verifyReset.create({
-          action: 'email', value: { password: user.plainPassword, email },
-        }, { user }, (err, user) => {
-          assert.strictEqual(err, null, 'err code set');
-          assert.strictEqual(user.isVerified, true, 'isVerified not true');
-          assert.equal(db[i].email, email);
-
-          assert.deepEqual(spyEmailer.result(), [
-            { args: ['email', emailUser, { user: db[i] }], result: [null] },
-          ]);
-
-          done();
+            done();
+          });
         });
       });
     });
@@ -180,6 +190,14 @@ function encrypt(app, password) {
 
 function emailer(action, user, params, cb) {
   cb(null);
+}
+
+function sanitizeUserForEmail(user) {
+  const user1 = clone(user);
+
+  delete user1.password;
+
+  return user1;
 }
 
 function clone(obj) {

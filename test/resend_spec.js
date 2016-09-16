@@ -19,222 +19,247 @@ const usersDb = [
 ];
 
 // Tests
+
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    const ifNonPaginated = pagination === 'non-paginated';
+    describe(`verifyReset::resend ${pagination} ${idType}`, () => {
+      const ifNonPaginated = pagination === 'non-paginated';
 
-    describe(`verifyReset::resend email string ${pagination} ${idType}`, () => {
-      var db;
-      var app;
-      var users;
-      var verifyReset;
+      describe('email string', () => {
+        var db;
+        var app;
+        var users;
+        var verifyReset;
 
-      beforeEach(() => {
-        db = clone(usersDb);
-        app = feathersStubs.app();
-        users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        verifyResetService({ testMode: true }).call(app); // define and attach verifyReset service
-        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
-      });
-
-      it('verifyReset::create exists', () => {
-        assert.isFunction(verifyReset.create);
-      });
-
-      it('updates unverified user', (done) => {
-        const email = 'a';
-        verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
-          assert.strictEqual(err, null, 'err code set');
-          assert.strictEqual(user.isVerified, false, 'isVerified not false');
-          assert.isString(user.verifyToken, 'verifyToken not String');
-          assert.equal(user.verifyToken.length, 30, 'verify token wrong length');
-          aboutEqualDateTime(user.verifyExpires, makeDateTime());
-
-          done();
+        beforeEach(() => {
+          db = clone(usersDb);
+          app = feathersStubs.app();
+          users = feathersStubs.users(app, db, ifNonPaginated, idType);
+          verifyResetService().call(app); // define and attach verifyReset service
+          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
         });
-      });
 
-      it('error on verified user', (done) => {
-        const email = 'b';
-        verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
-          assert.equal(err.message, 'User is already verified.');
-
-          done();
+        it('verifyReset::create exists', () => {
+          assert.isFunction(verifyReset.create);
         });
-      });
 
-      it('error on email not found', (done) => {
-        const email = 'x';
-        verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
-          assert.equal(err.message, 'Email or verify token not found.');
+        it('updates unverified user', (done) => {
+          const email = 'a';
+          const i = 0;
 
-          done();
-        });
-      });
-    });
+          verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
+            assert.strictEqual(err, null, 'err code set');
 
-    describe(`verifyReset::resend email string user is sanitized ${pagination} ${idType}`, () => {
-      var db;
-      var app;
-      var users;
-      var verifyReset;
+            assert.strictEqual(user.isVerified, false, 'user.isVerified not false');
 
-      beforeEach(() => {
-        db = clone(usersDb);
-        app = feathersStubs.app();
-        users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        verifyResetService().call(app); // define and attach verifyReset service
-        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
-      });
+            assert.strictEqual(db[i].isVerified, false, 'isVerified not false');
+            assert.isString(db[i].verifyToken, 'verifyToken not String');
+            assert.equal(db[i].verifyToken.length, 30, 'verify token wrong length');
+            aboutEqualDateTime(db[i].verifyExpires, makeDateTime());
 
-      it('updates unverified user', (done) => {
-        const email = 'a';
-        verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
-          assert.strictEqual(err, null, 'err code set');
-          assert.strictEqual(user.isVerified, false, 'isVerified not false');
-          assert.strictEqual(user.verifyToken, undefined, 'verifyToken not undefined');
-          assert.strictEqual(user.verifyExpires, undefined, 'verifyExpires not undefined');
-
-          done();
-        });
-      });
-    });
-
-    describe(`verifyReset::resend email object ${pagination} ${idType}`, () => {
-      var db;
-      var app;
-      var users;
-      var verifyReset;
-
-      beforeEach(() => {
-        db = clone(usersDb);
-        app = feathersStubs.app();
-        users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        verifyResetService({ testMode: true }).call(app); // define and attach verifyReset service
-        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
-      });
-
-      it('verifyReset::create exists', () => {
-        assert.isFunction(verifyReset.create);
-      });
-
-      it('updates unverified user', (done) => {
-        const email = 'a';
-        verifyReset.create({ action: 'resend', value: { email } }, {}, (err, user) => {
-          assert.strictEqual(err, null, 'err code set');
-          assert.strictEqual(user.isVerified, false, 'isVerified not false');
-          assert.isString(user.verifyToken, 'verifyToken not String');
-          assert.equal(user.verifyToken.length, 30, 'verify token wrong length');
-          aboutEqualDateTime(user.verifyExpires, makeDateTime());
-
-          done();
-        });
-      });
-
-      it('error on verified user', (done) => {
-        const email = 'b';
-        verifyReset.create({ action: 'resend', value: { email } }, {}, (err, user) => {
-          assert.equal(err.message, 'User is already verified.');
-
-          done();
-        });
-      });
-
-      it('error on email not found', (done) => {
-        const email = 'x';
-        verifyReset.create({ action: 'resend', value: { email } }, {}, (err, user) => {
-          assert.equal(err.message, 'Email or verify token not found.');
-
-          done();
-        });
-      });
-    });
-
-    describe(`verifyReset::resend token object ${pagination}`, () => {
-      var db;
-      var app;
-      var users;
-      var verifyReset;
-
-      beforeEach(() => {
-        db = clone(usersDb);
-        app = feathersStubs.app();
-        users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        verifyResetService({ testMode: true }).call(app); // define and attach verifyReset service
-        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
-      });
-
-      it('verifyReset::create exists', () => {
-        assert.isFunction(verifyReset.create);
-      });
-
-      it('updates unverified user', (done) => {
-        const verifyToken = '000';
-        verifyReset.create({ action: 'resend', value: { verifyToken } }, {}, (err, user) => {
-          assert.strictEqual(err, null, 'err code set');
-          assert.strictEqual(user.isVerified, false, 'isVerified not false');
-          assert.isString(user.verifyToken, 'verifyToken not String');
-          assert.equal(user.verifyToken.length, 30, 'verify token wrong length');
-          aboutEqualDateTime(user.verifyExpires, makeDateTime());
-
-          done();
-        });
-      });
-
-      it('error on verified user', (done) => {
-        const verifyToken = null;
-        verifyReset.create({ action: 'resend', value: { verifyToken } }, {}, (err, user) => {
-          assert.equal(err.message, 'User is already verified.');
-          assert.deepEqual(err.errors, {
-            email: 'User is already verified.', token: 'User is already verified.',
+            done();
           });
+        });
 
-          done();
+        it('error on verified user', (done) => {
+          const email = 'b';
+          verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
+            assert.equal(err.message, 'User is already verified.');
+
+            done();
+          });
+        });
+
+        it('error on email not found', (done) => {
+          const email = 'x';
+          verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
+            assert.equal(err.message, 'Email or verify token not found.');
+
+            done();
+          });
         });
       });
 
-      it('error on token not found', (done) => {
-        const verifyToken = 'x';
-        verifyReset.create({ action: 'resend', value: { verifyToken } }, {}, (err, user) => {
-          assert.equal(err.message, 'Email or verify token not found.');
-          assert.deepEqual(err.errors, { email: 'Not found.', token: 'Not found.' });
+      describe('email string user is sanitized', () => {
+        var db;
+        var app;
+        var users;
+        var verifyReset;
 
-          done();
+        beforeEach(() => {
+          db = clone(usersDb);
+          app = feathersStubs.app();
+          users = feathersStubs.users(app, db, ifNonPaginated, idType);
+          verifyResetService().call(app); // define and attach verifyReset service
+          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+        });
+
+        it('updates unverified user', (done) => {
+          const email = 'a';
+
+          verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
+            assert.strictEqual(err, null, 'err code set');
+
+            assert.strictEqual(user.isVerified, false, 'isVerified not false');
+            assert.strictEqual(user.verifyToken, undefined, 'verifyToken not undefined');
+            assert.strictEqual(user.verifyExpires, undefined, 'verifyExpires not undefined');
+
+            done();
+          });
         });
       });
-    });
 
-    describe(`verifyReset::resend with email ${pagination}`, () => {
-      var db;
-      var app;
-      var users;
-      var spyEmailer;
-      var verifyReset;
+      describe('email object', () => {
+        var db;
+        var app;
+        var users;
+        var verifyReset;
 
-      beforeEach(() => {
-        db = clone(usersDb);
-        app = feathersStubs.app();
-        users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        spyEmailer = new SpyOn(emailer);
+        beforeEach(() => {
+          db = clone(usersDb);
+          app = feathersStubs.app();
+          users = feathersStubs.users(app, db, ifNonPaginated, idType);
+          verifyResetService().call(app); // define and attach verifyReset service
+          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+        });
 
-        verifyResetService({ emailer: spyEmailer.callWithCb, testMode: true }).call(app);
-        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+        it('verifyReset::create exists', () => {
+          assert.isFunction(verifyReset.create);
+        });
+
+        it('updates unverified user', (done) => {
+          const email = 'a';
+          const i = 0;
+
+          verifyReset.create({ action: 'resend', value: { email } }, {}, (err, user) => {
+            assert.strictEqual(err, null, 'err code set');
+
+            assert.strictEqual(user.isVerified, false, 'user.isVerified not false');
+
+            assert.strictEqual(db[i].isVerified, false, 'isVerified not false');
+            assert.isString(db[i].verifyToken, 'verifyToken not String');
+            assert.equal(db[i].verifyToken.length, 30, 'verify token wrong length');
+            aboutEqualDateTime(db[i].verifyExpires, makeDateTime());
+
+            done();
+          });
+        });
+
+        it('error on verified user', (done) => {
+          const email = 'b';
+          verifyReset.create({ action: 'resend', value: { email } }, {}, (err, user) => {
+            assert.equal(err.message, 'User is already verified.');
+
+            done();
+          });
+        });
+
+        it('error on email not found', (done) => {
+          const email = 'x';
+          verifyReset.create({ action: 'resend', value: { email } }, {}, (err, user) => {
+            assert.equal(err.message, 'Email or verify token not found.');
+
+            done();
+          });
+        });
       });
 
-      it('updates unverified user', (done) => {
-        const email = 'a';
-        verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
-          assert.strictEqual(err, null, 'err code set');
-          assert.strictEqual(user.isVerified, false, 'isVerified not false');
-          assert.isString(user.verifyToken, 'verifyToken not String');
-          assert.equal(user.verifyToken.length, 30, 'verify token wrong length');
-          aboutEqualDateTime(user.verifyExpires, makeDateTime());
+      describe('token object', () => {
+        var db;
+        var app;
+        var users;
+        var verifyReset;
 
-          assert.deepEqual(spyEmailer.result(), [
-            { args: ['resend', user, {}], result: [null] },
-          ]);
+        beforeEach(() => {
+          db = clone(usersDb);
+          app = feathersStubs.app();
+          users = feathersStubs.users(app, db, ifNonPaginated, idType);
+          verifyResetService().call(app); // define and attach verifyReset service
+          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+        });
 
-          done();
+        it('verifyReset::create exists', () => {
+          assert.isFunction(verifyReset.create);
+        });
+
+        it('updates unverified user', (done) => {
+          const verifyToken = '000';
+          const i = 0;
+
+          verifyReset.create({ action: 'resend', value: { verifyToken } }, {}, (err, user) => {
+            assert.strictEqual(err, null, 'err code set');
+
+            assert.strictEqual(user.isVerified, false, 'user.isVerified not false');
+
+            assert.strictEqual(db[i].isVerified, false, 'isVerified not false');
+            assert.isString(db[i].verifyToken, 'verifyToken not String');
+            assert.equal(db[i].verifyToken.length, 30, 'verify token wrong length');
+            aboutEqualDateTime(db[i].verifyExpires, makeDateTime());
+
+            done();
+          });
+        });
+
+        it('error on verified user', (done) => {
+          const verifyToken = null;
+          verifyReset.create({ action: 'resend', value: { verifyToken } }, {}, (err, user) => {
+            assert.equal(err.message, 'User is already verified.');
+            assert.deepEqual(err.errors, {
+              email: 'User is already verified.', token: 'User is already verified.',
+            });
+
+            done();
+          });
+        });
+
+        it('error on token not found', (done) => {
+          const verifyToken = 'x';
+          verifyReset.create({ action: 'resend', value: { verifyToken } }, {}, (err, user) => {
+            assert.equal(err.message, 'Email or verify token not found.');
+            assert.deepEqual(err.errors, { email: 'Not found.', token: 'Not found.' });
+
+            done();
+          });
+        });
+      });
+
+      describe('with email', () => {
+        var db;
+        var app;
+        var users;
+        var spyEmailer;
+        var verifyReset;
+
+        beforeEach(() => {
+          db = clone(usersDb);
+          app = feathersStubs.app();
+          users = feathersStubs.users(app, db, ifNonPaginated, idType);
+          spyEmailer = new SpyOn(emailer);
+
+          verifyResetService({ emailer: spyEmailer.callWithCb }).call(app);
+          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+        });
+
+        it('updates unverified user', (done) => {
+          const email = 'a';
+          const i = 0;
+
+          verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
+            assert.strictEqual(err, null, 'err code set');
+
+            assert.strictEqual(user.isVerified, false, 'user.isVerified not false');
+
+            assert.strictEqual(db[i].isVerified, false, 'isVerified not false');
+            assert.isString(db[i].verifyToken, 'verifyToken not String');
+            assert.equal(db[i].verifyToken.length, 30, 'verify token wrong length');
+            aboutEqualDateTime(db[i].verifyExpires, makeDateTime());
+
+            assert.deepEqual(spyEmailer.result(), [
+              { args: ['resend', sanitizeUserForEmail(db[i]), {}], result: [null] },
+            ]);
+
+            done();
+          });
         });
       });
     });
@@ -256,6 +281,14 @@ function aboutEqualDateTime(time1, time2, msg, delta) {
   delta = delta || 500;
   const diff = Math.abs(time1 - time2);
   assert.isAtMost(diff, delta, msg || `times differ by ${diff}ms`);
+}
+
+function sanitizeUserForEmail(user) {
+  const user1 = clone(user);
+
+  delete user1.password;
+
+  return user1;
 }
 
 function clone(obj) {

@@ -19,210 +19,212 @@ const usersDb = [
 // Tests
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    const ifNonPaginated = pagination === 'non-paginated';
-
     describe(`verifyReset::unique ${pagination} ${idType}`, () => {
-      var db;
-      var app;
-      var users;
-      var verifyReset;
+      const ifNonPaginated = pagination === 'non-paginated';
 
-      beforeEach(() => {
-        db = clone(usersDb);
-        app = feathersStubs.app();
-        users = feathersStubs.users(app, db, ifNonPaginated, idType);
-        verifyResetService().call(app); // define and attach verifyReset service
-        verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
-      });
+      describe('standard', () => {
+        var db;
+        var app;
+        var users;
+        var verifyReset;
 
-      it('returns a promise', () => {
-        const res = verifyReset.create({
-          action: 'unique',
-          value: { username: 'john a' },
+        beforeEach(() => {
+          db = clone(usersDb);
+          app = feathersStubs.app();
+          users = feathersStubs.users(app, db, ifNonPaginated, idType);
+          verifyResetService().call(app); // define and attach verifyReset service
+          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
         });
 
-        assert.isOk(res, 'no promise returned');
-        assert.isFunction(res.then, 'not a function');
-      });
-
-      it('handles empty query', function (done) {
-        this.timeout(9000);
-
-        verifyReset.create({
-          action: 'unique',
-          value: {},
-        })
-          .then(() => {
-            done();
-          })
-          .catch(() => {
-            assert.fail(true, false, 'test unexpectedly failed');
+        it('returns a promise', () => {
+          const res = verifyReset.create({
+            action: 'unique',
+            value: { username: 'john a' },
           });
-      });
 
-      it('handles empty query returning nothing', function (done) {
-        this.timeout(9000);
+          assert.isOk(res, 'no promise returned');
+          assert.isFunction(res.then, 'not a function');
+        });
 
-        verifyReset.create({
-          action: 'unique',
-          value: { username: 'hjhjhj' },
-        })
-          .then(() => {
-            done();
+        it('handles empty query', function (done) {
+          this.timeout(9000);
+
+          verifyReset.create({
+            action: 'unique',
+            value: {},
           })
-          .catch(() => {
-            assert.fail(true, false, 'test unexpectedly failed');
-          });
-      });
+            .then(() => {
+              done();
+            })
+            .catch(() => {
+              assert.fail(true, false, 'test unexpectedly failed');
+            });
+        });
 
-      it('finds single query on single item', function (done) {
-        this.timeout(9000);
-        const username = 'john a';
+        it('handles empty query returning nothing', function (done) {
+          this.timeout(9000);
 
-        verifyReset.create({
-          action: 'unique',
-          value: { username },
-        })
-          .then(() => {
-            assert.fail(true, false, 'test unexpectedly succeeded');
+          verifyReset.create({
+            action: 'unique',
+            value: { username: 'hjhjhj' },
           })
-          .catch(err => {
-            assert.equal(err.message, 'Values already taken.');
-            assert.equal(err.errors.username, 'Already taken.');
+            .then(() => {
+              done();
+            })
+            .catch(() => {
+              assert.fail(true, false, 'test unexpectedly failed');
+            });
+        });
 
-            done();
-          });
-      });
+        it('finds single query on single item', function (done) {
+          this.timeout(9000);
+          const username = 'john a';
 
-      it('handles noErrMsg option', function (done) {
-        this.timeout(9000);
-        const username = 'john a';
-
-        verifyReset.create({
-          action: 'unique',
-          value: { username },
-          meta: { noErrMsg: true },
-        })
-          .then(() => {
-            assert.fail(true, false, 'test unexpectedly succeeded');
+          verifyReset.create({
+            action: 'unique',
+            value: { username },
           })
-          .catch(err => {
-            assert.equal(err.message, 'Error'); // feathers default for no error message
-            assert.equal(err.errors.username, 'Already taken.');
+            .then(() => {
+              assert.fail(true, false, 'test unexpectedly succeeded');
+            })
+            .catch(err => {
+              assert.equal(err.message, 'Values already taken.');
+              assert.equal(err.errors.username, 'Already taken.');
 
-            done();
-          });
-      });
+              done();
+            });
+        });
 
-      it('finds single query on multiple items', function (done) {
-        this.timeout(9000);
-        const username = 'john b';
+        it('handles noErrMsg option', function (done) {
+          this.timeout(9000);
+          const username = 'john a';
 
-        verifyReset.create({
-          action: 'unique',
-          value: { username },
-        })
-          .then(() => {
-            assert.fail(true, false, 'test unexpectedly succeeded');
+          verifyReset.create({
+            action: 'unique',
+            value: { username },
+            meta: { noErrMsg: true },
           })
-          .catch(err => {
-            assert.equal(err.message, 'Values already taken.');
-            assert.equal(err.errors.username, 'Already taken.');
+            .then(() => {
+              assert.fail(true, false, 'test unexpectedly succeeded');
+            })
+            .catch(err => {
+              assert.equal(err.message, 'Error'); // feathers default for no error message
+              assert.equal(err.errors.username, 'Already taken.');
 
-            done();
-          });
-      });
+              done();
+            });
+        });
 
-      it('finds multiple queries on same item', function (done) {
-        this.timeout(9000);
-        const username = 'john a';
-        const email = 'a';
+        it('finds single query on multiple items', function (done) {
+          this.timeout(9000);
+          const username = 'john b';
 
-        verifyReset.create({
-          action: 'unique',
-          value: { username, email },
-        })
-          .then(() => {
-            assert.fail(true, false, 'test unexpectedly succeeded');
+          verifyReset.create({
+            action: 'unique',
+            value: { username },
           })
-          .catch(err => {
-            assert.equal(err.message, 'Values already taken.');
-            assert.equal(err.errors.username, 'Already taken.');
+            .then(() => {
+              assert.fail(true, false, 'test unexpectedly succeeded');
+            })
+            .catch(err => {
+              assert.equal(err.message, 'Values already taken.');
+              assert.equal(err.errors.username, 'Already taken.');
 
-            done();
-          });
-      });
+              done();
+            });
+        });
 
-      it('finds multiple queries on different item', function (done) {
-        this.timeout(9000);
-        const username = 'john a';
-        const email = 'b';
+        it('finds multiple queries on same item', function (done) {
+          this.timeout(9000);
+          const username = 'john a';
+          const email = 'a';
 
-        verifyReset.create({
-          action: 'unique',
-          value: { username, email },
-        })
-          .then(() => {
-            assert.fail(true, false, 'test unexpectedly succeeded');
+          verifyReset.create({
+            action: 'unique',
+            value: { username, email },
           })
-          .catch(err => {
-            assert.equal(err.message, 'Values already taken.');
-            assert.equal(err.errors.username, 'Already taken.');
+            .then(() => {
+              assert.fail(true, false, 'test unexpectedly succeeded');
+            })
+            .catch(err => {
+              assert.equal(err.message, 'Values already taken.');
+              assert.equal(err.errors.username, 'Already taken.');
 
-            done();
-          });
-      });
+              done();
+            });
+        });
 
-      it('ignores null & undefined queries', function (done) {
-        this.timeout(9000);
+        it('finds multiple queries on different item', function (done) {
+          this.timeout(9000);
+          const username = 'john a';
+          const email = 'b';
 
-        verifyReset.create({
-          action: 'unique',
-          value: { username: undefined, email: null },
-        })
-          .then(() => {
-            done();
+          verifyReset.create({
+            action: 'unique',
+            value: { username, email },
           })
-          .catch(() => {
-            assert.fail(true, false, 'test unexpectedly failed');
-          });
-      });
+            .then(() => {
+              assert.fail(true, false, 'test unexpectedly succeeded');
+            })
+            .catch(err => {
+              assert.equal(err.message, 'Values already taken.');
+              assert.equal(err.errors.username, 'Already taken.');
 
-      it('ignores current user on single item', function (done) {
-        this.timeout(9000);
-        const username = 'john a';
+              done();
+            });
+        });
 
-        verifyReset.create({
-          action: 'unique',
-          value: { username },
-          ownId: 'a',
-        })
-          .then(() => {
-            done();
+        it('ignores null & undefined queries', function (done) {
+          this.timeout(9000);
+
+          verifyReset.create({
+            action: 'unique',
+            value: { username: undefined, email: null },
           })
-          .catch(() => {
-            assert.fail(true, false, 'test unexpectedly failed');
-          });
-      });
+            .then(() => {
+              done();
+            })
+            .catch(() => {
+              assert.fail(true, false, 'test unexpectedly failed');
+            });
+        });
 
-      it('cannot ignore current user on multiple items', function (done) {
-        this.timeout(9000);
-        const username = 'john b';
+        it('ignores current user on single item', function (done) {
+          this.timeout(9000);
+          const username = 'john a';
 
-        verifyReset.create({
-          action: 'unique',
-          value: { username },
-          ownId: 'b',
-        })
-          .then(() => {
-            assert.fail(true, false, 'test unexpectedly succeeded');
+          verifyReset.create({
+            action: 'unique',
+            value: { username },
+            ownId: 'a',
           })
-          .catch(err => {
-            assert.equal(err.message, 'Values already taken.');
-            assert.equal(err.errors.username, 'Already taken.');
+            .then(() => {
+              done();
+            })
+            .catch(() => {
+              assert.fail(true, false, 'test unexpectedly failed');
+            });
+        });
 
-            done();
-          });
+        it('cannot ignore current user on multiple items', function (done) {
+          this.timeout(9000);
+          const username = 'john b';
+
+          verifyReset.create({
+            action: 'unique',
+            value: { username },
+            ownId: 'b',
+          })
+            .then(() => {
+              assert.fail(true, false, 'test unexpectedly succeeded');
+            })
+            .catch(err => {
+              assert.equal(err.message, 'Values already taken.');
+              assert.equal(err.errors.username, 'Already taken.');
+
+              done();
+            });
+        });
       });
     });
   });

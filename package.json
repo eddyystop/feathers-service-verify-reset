@@ -15,6 +15,7 @@
     "eslint": "eslint src/. test/. --ext .js,.jsx .",
     "build": "npm run copy && npm run babel",
     "test": "npm run build && npm run eslint && npm run mocha",
+    "test:build": "npm run build && npm run mocha",
     "test:only": "npm run mocha:only",
     "cover": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- --reporter spec test/*",
     "watch": "npm run copy && npm run babel:watch",
