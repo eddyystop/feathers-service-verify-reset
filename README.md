@@ -116,6 +116,7 @@ users.create(user, (err, user) => { ... });
 
 // Resend another email address verification email. New link, new slug.
 verifyReset.resendVerify(email, (err, user) => { ... });
+verifyReset.resendVerify({ verifyToken }, (err, user) => { ... })
 
 // Verify email address once user clicks link in the verification email.
 // Then send a confirmation email.

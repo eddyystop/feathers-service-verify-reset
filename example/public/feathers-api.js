@@ -30,8 +30,6 @@ document.getElementById('message').addEventListener('click', message);
 document.getElementById('reset-pwd').addEventListener('click', sendResetPwd);
 const resetEmailEl = document.getElementById('reset-email');
 
-const resetEl = document.getElementById('reset');
-
 // verified sign up panel
 const verifySignupEl = document.getElementById('verify-signup');
 document.getElementById('sign-in').addEventListener('click', controlPanel);
@@ -40,7 +38,6 @@ document.getElementById('sign-in').addEventListener('click', controlPanel);
 const resetPasswordEl = document.getElementById('reset-password');
 const passwordResetEl = document.getElementById('password-reset');
 document.getElementById('do-reset').addEventListener('click', saveResetPwd);
-const resetTokenEl = document.getElementById('reset-token');
 
 // display utility
 function displayActiveDom(ifControlPanel, ifVerifySignup, ifResetPassword) {
@@ -64,13 +61,14 @@ const verifyReset = new VerifyReset(app);
 
 const [leader, provider, action, slug] = // eslint-disable-line no-unused-vars
   window.location.pathname.split('/');
+console.log('router', leader, provider, action, slug);
 
 switch (action) {
   case 'verify':
     console.log(`--- feathers provider: ${apiType}, page mode: verify sign up.`);
     verifySignUp(slug);
     break;
-  case 'reset':
+  case 'forgot':
     console.log(`--- feathers provider: ${apiType}, page mode: reset password.`);
     resetPassword(slug);
     break;
@@ -197,9 +195,6 @@ function sendResetPwd() {
     }
 
     console.log('user reset changed', user);
-
-    resetEl.href = `http://localhost:3030/${apiType}/reset/${user.resetToken}`;
-    resetEl.text = `http://localhost:3030/${apiType}/reset/${user.resetToken}`;
   });
 }
 
@@ -224,9 +219,9 @@ function verifySignUp(slug1) {
  Reset Password
  */
 
-function resetPassword(slug1) {
+function resetPassword() {
+  console.log('--- resetPassword');
   displayActiveDom(false, false, true);
-  resetTokenEl.value = slug1;
 }
 
 function saveResetPwd() {
