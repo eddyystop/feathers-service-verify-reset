@@ -1,5 +1,9 @@
 # Notable changes to feathers-service-verify-reset
 
+## 0.5.4
+### Fixes
+- Fixed example bringing it up to date with repo.
+
 ## 0.5.2
 ### Internal changes
 - User item returned on callback is now better sanitized.
