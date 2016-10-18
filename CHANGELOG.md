@@ -1,5 +1,9 @@
 # Notable changes to feathers-service-verify-reset
 
+## 0.5.5
+### Fixes
+- The password was not updating properly on `verify` and `rest`. Thanks @beeplin.
+
 ## 0.5.4
 ### Fixes
 - Fixed example bringing it up to date with repo.

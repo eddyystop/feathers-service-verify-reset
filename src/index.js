@@ -231,12 +231,20 @@ module.exports.service = function (options) {
             ));
           }
 
-          users.update(user.id || user._id, user, {},
-            (err, user1) => {
+          const patchToUser = {
+            isVerified: user.isVerified,
+            verifyExpires: user.verifyExpires,
+            verifyToken: user.verifyToken,
+            resetToken: user.resetToken,
+            resetExpires: user.resetExpires,
+          };
+
+          users.patch(user.id || user._id, patchToUser, {},
+            (err) => {
               if (err) { throw new errors.GeneralError(err); }
               emailer('verify', sanitizeUserForEmail(user), params, (err1) => {
                 debug('verify. Completed.');
-                cb(err1, sanitizeUserForClient(user1));
+                cb(err1, sanitizeUserForClient(user));
               });
             });
         })
@@ -327,13 +335,19 @@ module.exports.service = function (options) {
               user.resetExpires = null;
               user.resetToken = null;
 
-              users.update(user.id || user._id, user, {},
-                (err, user1) => {
+              const patchToUser = {
+                password: user.password,
+                resetToken: user.resetToken,
+                resetExpires: user.resetExpires,
+              };
+
+              users.patch(user.id || user._id, patchToUser, {},
+                (err) => {
                   if (err) { throw new errors.GeneralError(err); }
 
-                  emailer('reset', sanitizeUserForEmail(user1), params, (err1) => {
+                  emailer('reset', sanitizeUserForEmail(user), params, (err1) => {
                     debug('reset. Completed.');
-                    return cb(err1, sanitizeUserForClient(user1));
+                    return cb(err1, sanitizeUserForClient(user));
                   });
                 });
             })

@@ -60,6 +60,10 @@ function emailer(action, user, params, cb) {
 }
 ```
 
+The `users` service is expected to be already configured.
+Its `patch` method is used to update the password when needed
+and therefore `path` may *not* have a `auth.hashPassword()` hook.
+
 An email to verify the user's email addr can be sent when user if created on the server,
 e.g. `/src/services/user/hooks/index`:
 
@@ -87,6 +91,8 @@ function emailVerification(hook, next) {
   next(null, hook);
 }
 ```
+
+
 
 ### Client
 

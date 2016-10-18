@@ -72,6 +72,17 @@ module.exports.users = function users(app, usersDb, nonPaginated, idProp = '_id'
       usersDb[index] = user;
       cb(null, user); // we're skipping before & after hooks
     },
+    patch(id, user, params, cb) { // always use with a callback
+      debug('/users patch: %s %o %o', id, user, params);
+      const index = usersDb.findIndex((user1 => user1[idProp] === id));
+
+      if (index === -1) {
+        return cb(new Error(`users.patch ${idProp}=${id} not found.`));
+      }
+
+      Object.assign(usersDb[index], user);
+      cb(null, user); // we're skipping before & after hooks
+    },
   };
 
   app.use('/users', usersConfig);
