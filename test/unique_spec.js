@@ -40,7 +40,9 @@ const usersDb = [
           const res = verifyReset.create({
             action: 'unique',
             value: { username: 'john a' },
-          });
+          })
+            .then(() => { })
+            .catch(() => {});
 
           assert.isOk(res, 'no promise returned');
           assert.isFunction(res.then, 'not a function');

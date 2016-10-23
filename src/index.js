@@ -185,7 +185,7 @@ module.exports.service = function (options) {
 
                 emailer('resend', sanitizeUserForEmail(user1), params, (err2) => {
                   debug('resend. Completed.');
-                  cb(err2, sanitizeUserForClient(user2));
+                  return cb(err2, sanitizeUserForClient(user2));
                 });
               });
           });

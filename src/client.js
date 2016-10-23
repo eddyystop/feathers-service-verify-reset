@@ -63,6 +63,8 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
   };
 
   this.authenticate = function authenticate(email, password, cb) {
+    let cbCalled = false;
+
     app.authenticate({ type: 'local', email, password })
       .then((result) => {
         const user = result.data;
@@ -73,10 +75,13 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
           return;
         }
 
+        cbCalled = true;
         cb(null, user);
       })
       .catch((err) => {
-        cb(err);
+        if (!cbCalled) {
+          cb(err);
+        }
       });
   };
 }

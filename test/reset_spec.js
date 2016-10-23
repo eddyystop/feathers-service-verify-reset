@@ -150,6 +150,7 @@ const usersDb = [
         it('verifies valid token', (done) => {
           const resetToken = '000';
           const i = 0;
+          var doneWrap = new Done(done);
 
           verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
             (err, user) => {
@@ -170,7 +171,7 @@ const usersDb = [
                 result: [null],
               }]);
 
-              done();
+              doneWrap.trigger();
             });
         });
       });
@@ -194,4 +195,21 @@ function sanitizeUserForEmail(user) {
 
 function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
+}
+
+function Done(fn) {
+  var self = this;
+  var called = false;
+
+  this.trigger = function (...rest) {
+    if (called) {
+      console.warn('done has already been called'); // eslint-disable-line no-console
+      console.trace(); // eslint-disable-line no-console
+
+      return;
+    }
+
+    fn.apply(self, rest);
+    called = true;
+  };
 }
