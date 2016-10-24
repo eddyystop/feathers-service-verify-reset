@@ -178,14 +178,22 @@ module.exports.service = function (options) {
             ));
           }
 
-          addVerifyProps(user, {}, (err, user1) => { // todo options not passed
-            users.update(user1.id || user1._id, user1, {},
-              (err1, user2) => { // careful, hooks may have stripped some fields out of user2
+          crypto.randomBytes(options.len || 15, (err, buf) => {
+            if (err) { throw new errors.GeneralError(err); }
+
+            const patchToUser = {
+              isVerified: false,
+              verifyExpires: Date.now() + defaultVerifyDelay,
+              verifyToken: buf.toString('hex'),
+            };
+
+            users.patch(user.id || user._id, patchToUser, {},
+              err1 => {
                 if (err1) { throw new errors.GeneralError(err1); }
 
-                emailer('resend', sanitizeUserForEmail(user1), params, (err2) => {
+                emailer('resend', sanitizeUserForEmail(user), params, (err2) => {
                   debug('resend. Completed.');
-                  return cb(err2, sanitizeUserForClient(user2));
+                  return cb(err2, sanitizeUserForClient(user));
                 });
               });
           });
@@ -475,10 +483,16 @@ module.exports.service = function (options) {
 module.exports.hooks = {};
 
 module.exports.hooks.addVerification = (options) => (hook, next) => {
+  options = options || {};
   utils.checkContext(hook, 'before', 'create');
 
-  addVerifyProps(hook.data, options, (err, data) => {
-    hook.data = data;
+  crypto.randomBytes(options.len || 15, (err, buf) => {
+    if (err) { throw new errors.GeneralError(err); }
+
+    hook.data.isVerified = false;
+    hook.data.verifyExpires = Date.now() + (options.delay || defaultVerifyDelay);
+    hook.data.verifyToken = buf.toString('hex');
+
     next(null, hook);
   });
 };
@@ -506,20 +520,6 @@ module.exports.hooks.removeVerification = (ifReturnTokens) => (hook) => {
 };
 
 // Helpers
-
-const addVerifyProps = (data, options, cb) => {
-  options = options || {};
-
-  crypto.randomBytes(options.len || 15, (err, buf) => {
-    if (err) { throw new errors.GeneralError(err); }
-
-    data.isVerified = false;
-    data.verifyExpires = Date.now() + (options.delay || defaultVerifyDelay);
-    data.verifyToken = buf.toString('hex');
-
-    cb(null, data);
-  });
-};
 
 function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
