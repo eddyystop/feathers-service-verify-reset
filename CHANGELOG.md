@@ -1,7 +1,9 @@
 # Notable changes to feathers-service-verify-reset
 
-## 0.6.0
+## 0.6.1
 ### Fixes
+- Changes to `users` done using `.patch`. Patch hooks may not change `password`.
+### Internal changes
 - Node 6.9.1 identified some issues where the cb was called again if prev cb threw.
 
 ## 0.5.5
