@@ -53,7 +53,7 @@ module.exports.service = function (options) {
   options = options || {};
   debug(`service configured. typeof emailer=${typeof options.emailer}`);
 
-  const emailer = options.emailer || function (p1, p2, p3, cb) { cb(null); };
+  const emailer = options.emailer || ((p1, p2, p3, cb) => { cb(null); });
   const resetDelay = options.resetDelay || defaultResetDelay;
 
   return function verifyReset() { // 'function' needed as we use 'this'
@@ -186,6 +186,7 @@ module.exports.service = function (options) {
               verifyExpires: Date.now() + defaultVerifyDelay,
               verifyToken: buf.toString('hex'),
             };
+            Object.assign(user, patchToUser);
 
             users.patch(user.id || user._id, patchToUser, {},
               err1 => {
@@ -246,6 +247,7 @@ module.exports.service = function (options) {
             resetToken: user.resetToken,
             resetExpires: user.resetExpires,
           };
+          Object.assign(user, patchToUser);
 
           users.patch(user.id || user._id, patchToUser, {},
             (err) => {
@@ -281,16 +283,20 @@ module.exports.service = function (options) {
             if (err) {
               throw new errors.GeneralError(err);
             }
-            user.resetExpires = Date.now() + resetDelay;
-            user.resetToken = buf.toString('hex');
 
-            users.update(user.id || user._id, user, {},
-              (err1, user1) => {
+            const patchToUser = {
+              resetExpires: Date.now() + resetDelay,
+              resetToken: buf.toString('hex'),
+            };
+            Object.assign(user, patchToUser);
+
+            users.patch(user.id || user._id, patchToUser, {},
+              err1 => {
                 if (err1) { throw new errors.GeneralError(err1); }
 
-                emailer('forgot', sanitizeUserForEmail(user1), params, (err2) => {
+                emailer('forgot', sanitizeUserForEmail(user), params, (err2) => {
                   debug('forgot. Completed.');
-                  cb(err2, sanitizeUserForClient(user1));
+                  cb(err2, sanitizeUserForClient(user));
                 });
               });
           });
@@ -348,6 +354,7 @@ module.exports.service = function (options) {
                 resetToken: user.resetToken,
                 resetExpires: user.resetExpires,
               };
+              Object.assign(user, patchToUser);
 
               users.patch(user.id || user._id, patchToUser, {},
                 (err) => {
@@ -395,18 +402,20 @@ module.exports.service = function (options) {
             };
             auth.hashPassword()(hook)
               .then(hook1 => {
-                // update user information
-                user1.password = hook1.data.password;
+                const patchToUser = {
+                  password: hook1.data.password,
+                };
+                Object.assign(user, patchToUser);
 
-                users.update(user1.id || user1._id, user1, {}, (err1, user2) => {
+                users.patch(user1.id || user1._id, patchToUser, {}, err1 => {
                   if (err1) {
                     throw new errors.GeneralError(err1);
                   }
 
                   // send email
-                  emailer('password', sanitizeUserForEmail(user2), params, (err2) => {
+                  emailer('password', sanitizeUserForEmail(user), params, (err2) => {
                     debug('password. Completed.');
-                    cb(err2, sanitizeUserForClient(user2));
+                    cb(err2, sanitizeUserForClient(user));
                   });
                 });
               });
@@ -438,16 +447,16 @@ module.exports.service = function (options) {
             user3.newEmail = email;
             emailer('email', sanitizeUserForEmail(user3), params, () => {});
 
-            // update user information
-            user1.email = email;
+            const patchToUser = { email };
+            Object.assign(user1, patchToUser);
 
-            users.update(user1.id || user1._id, user1, {}, (err1, user2) => {
+            users.patch(user1.id || user1._id, patchToUser, {}, err1 => {
               if (err1) {
                 throw new errors.GeneralError(err1);
               }
 
               debug('email. Completed.');
-              cb(err1, sanitizeUserForClient(user2));
+              cb(err1, sanitizeUserForClient(user1));
             });
           });
         })
