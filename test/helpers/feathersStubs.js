@@ -46,7 +46,7 @@ module.exports.users = function users(app, usersDb, nonPaginated, idProp = '_id'
     usersDb.forEach(user => {
       user[idProp] = user._id;
       user._id = undefined;
-      delete users._id;
+      delete user._id;
     });
   }
 
@@ -61,7 +61,7 @@ module.exports.users = function users(app, usersDb, nonPaginated, idProp = '_id'
           : { total: data.length, data });
       });
     },
-    update(id, user, params, cb) { // always use with a callback
+    update(id, user, params, cb) { // use with promise or  callback
       debug('/users update: %s %o %o', id, user, params);
       const index = usersDb.findIndex((user1 => user1[idProp] === id));
 
@@ -70,9 +70,10 @@ module.exports.users = function users(app, usersDb, nonPaginated, idProp = '_id'
       }
 
       usersDb[index] = user;
-      cb(null, user); // we're skipping before & after hooks
+
+      return cb ? cb(null, user) : Promise.resolve(user); // we're skipping before & after hooks
     },
-    patch(id, user, params, cb) { // always use with a callback
+    patch(id, user, params, cb) { // use with promise or  callback
       debug('/users patch: %s %o %o', id, user, params);
       const index = usersDb.findIndex((user1 => user1[idProp] === id));
 
@@ -81,7 +82,8 @@ module.exports.users = function users(app, usersDb, nonPaginated, idProp = '_id'
       }
 
       Object.assign(usersDb[index], user);
-      cb(null, user); // we're skipping before & after hooks
+
+      return cb ? cb(null, user) : Promise.resolve(user); // we're skipping before & after hooks
     },
   };
 

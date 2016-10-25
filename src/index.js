@@ -63,7 +63,15 @@ module.exports.service = function (options) {
     var users;
     var params;
 
+    const isAction = (...args) => hook => args.indexOf(hook.data.action) !== -1;
+
     app.use(path, {
+      before: {
+        create: [
+          hooks.iff(isAction('password', 'email'), auth.verifyToken()),
+          hooks.iff(isAction('password', 'email'), auth.populateUser()),
+        ],
+      },
       create(data, params1, cb) {
         debug(`service called. action=${data.action} value=${JSON.stringify(data.value)}`);
         users = app.service('/users'); // here in case users service is configured after verifyReset
@@ -71,39 +79,24 @@ module.exports.service = function (options) {
 
         switch (data.action) {
           case 'unique':
-            // the 'return' is needed!
+            // the 'return' is needed as this return a promise
             return checkUniqueness(data.value, data.ownId || null, data.meta || {});
           case 'resend':
-            resendVerifySignUp(data.value, cb);
-            break;
+            return resendVerifySignUp(data.value, cb);
           case 'verify':
-            verifySignUp(data.value, cb);
-            break;
+            return verifySignUp(data.value, cb);
           case 'forgot':
-            sendResetPwd(data.value, cb);
-            break;
+            return sendResetPwd(data.value, cb);
           case 'reset':
-            resetPwd(data.value.token, data.value.password, cb);
-            break;
+            return resetPwd(data.value.token, data.value.password, cb);
           case 'password':
-            passwordChange(params.user, data.value.oldPassword, data.value.password, cb);
-            break;
+            return passwordChange(params.user, data.value.oldPassword, data.value.password, cb);
           case 'email':
-            emailChange(params.user, data.value.password, data.value.email, cb);
-            break;
+            return emailChange(params.user, data.value.password, data.value.email, cb);
           default:
             throw new errors.BadRequest(`Action "${data.action}" is invalid.`);
         }
       },
-    });
-
-    const isAction = (...args) => hook => args.indexOf(hook.data.action) !== -1;
-
-    app.service(path).before({
-      create: [
-        hooks.iff(isAction('password', 'email'), auth.verifyToken()),
-        hooks.iff(isAction('password', 'email'), auth.populateUser()),
-      ],
     });
 
     function checkUniqueness(uniques, ownId, meta) {
@@ -181,22 +174,11 @@ module.exports.service = function (options) {
           crypto.randomBytes(options.len || 15, (err, buf) => {
             if (err) { throw new errors.GeneralError(err); }
 
-            const patchToUser = {
+            return patchUserAndSendEmail(user, 'resend', cb, {
               isVerified: false,
               verifyExpires: Date.now() + defaultVerifyDelay,
               verifyToken: buf.toString('hex'),
-            };
-            Object.assign(user, patchToUser);
-
-            users.patch(user.id || user._id, patchToUser, {},
-              err1 => {
-                if (err1) { throw new errors.GeneralError(err1); }
-
-                emailer('resend', sanitizeUserForEmail(user), params, (err2) => {
-                  debug('resend. Completed.');
-                  return cb(err2, sanitizeUserForClient(user));
-                });
-              });
+            });
           });
         })
         .catch(err => {
@@ -240,23 +222,13 @@ module.exports.service = function (options) {
             ));
           }
 
-          const patchToUser = {
+          return patchUserAndSendEmail(user, 'verify', cb, {
             isVerified: user.isVerified,
             verifyExpires: user.verifyExpires,
             verifyToken: user.verifyToken,
             resetToken: user.resetToken,
             resetExpires: user.resetExpires,
-          };
-          Object.assign(user, patchToUser);
-
-          users.patch(user.id || user._id, patchToUser, {},
-            (err) => {
-              if (err) { throw new errors.GeneralError(err); }
-              emailer('verify', sanitizeUserForEmail(user), params, (err1) => {
-                debug('verify. Completed.');
-                cb(err1, sanitizeUserForClient(user));
-              });
-            });
+          });
         })
         .catch(err => {
           throw new errors.GeneralError(err);
@@ -274,6 +246,7 @@ module.exports.service = function (options) {
           }
 
           const user = Array.isArray(data) ? data[0] : data.data[0]; // 1 entry as emails are unique
+
           if (!user.isVerified) {
             return cb(new errors.BadRequest(
               'Email is not yet verified.', { errors: { email: 'Not verified.' } }
@@ -284,21 +257,10 @@ module.exports.service = function (options) {
               throw new errors.GeneralError(err);
             }
 
-            const patchToUser = {
+            return patchUserAndSendEmail(user, 'forgot', cb, {
               resetExpires: Date.now() + resetDelay,
               resetToken: buf.toString('hex'),
-            };
-            Object.assign(user, patchToUser);
-
-            users.patch(user.id || user._id, patchToUser, {},
-              err1 => {
-                if (err1) { throw new errors.GeneralError(err1); }
-
-                emailer('forgot', sanitizeUserForEmail(user), params, (err2) => {
-                  debug('forgot. Completed.');
-                  cb(err2, sanitizeUserForClient(user));
-                });
-              });
+            });
           });
         })
         .catch(err => {
@@ -344,31 +306,12 @@ module.exports.service = function (options) {
 
           debug('reset. hashing password.');
           auth.hashPassword()(hook)
-            .then(hook1 => {
-              user.password = hook1.data.password;
-              user.resetExpires = null;
-              user.resetToken = null;
-
-              const patchToUser = {
-                password: user.password,
-                resetToken: user.resetToken,
-                resetExpires: user.resetExpires,
-              };
-              Object.assign(user, patchToUser);
-
-              users.patch(user.id || user._id, patchToUser, {},
-                (err) => {
-                  if (err) { throw new errors.GeneralError(err); }
-
-                  emailer('reset', sanitizeUserForEmail(user), params, (err1) => {
-                    debug('reset. Completed.');
-                    return cb(err1, sanitizeUserForClient(user));
-                  });
-                });
+            .then(hook1 => patchUserAndSendEmail(user, 'reset', cb, {
+              password: hook1.data.password,
+              resetToken: null,
+              resetExpires: null,
             })
-            .catch(err => {
-              throw new errors.GeneralError(err);
-            });
+          );
         })
         .catch(err => {
           throw new errors.GeneralError(err);
@@ -401,30 +344,17 @@ module.exports.service = function (options) {
               },
             };
             auth.hashPassword()(hook)
-              .then(hook1 => {
-                const patchToUser = {
-                  password: hook1.data.password,
-                };
-                Object.assign(user, patchToUser);
-
-                users.patch(user1.id || user1._id, patchToUser, {}, err1 => {
-                  if (err1) {
-                    throw new errors.GeneralError(err1);
-                  }
-
-                  // send email
-                  emailer('password', sanitizeUserForEmail(user), params, (err2) => {
-                    debug('password. Completed.');
-                    cb(err2, sanitizeUserForClient(user));
-                  });
-                });
-              });
+              .then(hook1 => patchUserAndSendEmail(user1, 'password', cb, {
+                password: hook1.data.password,
+              })
+            );
           });
         })
         .catch(err => {
           cb(new errors.GeneralError(err));
         });
     }
+
 
     // note this call does not update the authenticated user info in hooks.params.user.
     function emailChange(user, password, email, cb) {
@@ -447,17 +377,7 @@ module.exports.service = function (options) {
             user3.newEmail = email;
             emailer('email', sanitizeUserForEmail(user3), params, () => {});
 
-            const patchToUser = { email };
-            Object.assign(user1, patchToUser);
-
-            users.patch(user1.id || user1._id, patchToUser, {}, err1 => {
-              if (err1) {
-                throw new errors.GeneralError(err1);
-              }
-
-              debug('email. Completed.');
-              cb(err1, sanitizeUserForClient(user1));
-            });
+            return patchUserAndSendEmail(user1, 'email', cb, { email }, false);
           });
         })
         .catch(err => {
@@ -465,8 +385,46 @@ module.exports.service = function (options) {
         });
     }
 
+    // Helpers
+
+    function patchUserAndSendEmail(user /* modified */, emailAction, cb, patchToUser, ifEmail) {
+      debug(`${emailAction}. Patch user.`);
+      Object.assign(user, patchToUser);
+      if (ifEmail === undefined) {
+        ifEmail = true;
+      }
+
+      const promise = users.patch(user.id || user._id, patchToUser, {})
+        .then(() => new Promise((resolve, reject) => {
+          if (!ifEmail) {
+            return resolve();
+          }
+
+          emailer(emailAction, sanitizeUserForEmail(user), params, err2 => {
+            debug(`${emailAction}. Completed.`);
+            return err2 ? reject(err2) : resolve();
+          });
+        })
+        )
+        .then(() => sanitizeUserForClient(user));
+
+      return cb ? promiseToCallback(promise)(cb) : promise;
+    }
+
+    function promiseToCallback(promise) {
+      return function (cb) {
+        promise.then(
+          data => {
+            process.nextTick(cb, null, data);
+          },
+          err => {
+            process.nextTick(cb, err);
+          });
+      };
+    }
+
     function sanitizeUserForClient(user) {
-      const user1 = clone(user);
+      const user1 = Object.assign({}, user);
 
       delete user1.password;
       delete user1.verifyExpires;
@@ -478,7 +436,7 @@ module.exports.service = function (options) {
     }
 
     function sanitizeUserForEmail(user) {
-      const user1 = clone(user);
+      const user1 = Object.assign({}, user);
 
       delete user1.password;
 
@@ -527,9 +485,3 @@ module.exports.hooks.removeVerification = (ifReturnTokens) => (hook) => {
     }
   }
 };
-
-// Helpers
-
-function clone(obj) {
-  return JSON.parse(JSON.stringify(obj));
-}

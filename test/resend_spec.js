@@ -262,6 +262,62 @@ const usersDb = [
           });
         });
       });
+
+      /*
+      describe('works as Promise', () => {
+        var db;
+        var app;
+        var users;
+        var verifyReset;
+
+        beforeEach(() => {
+          db = clone(usersDb);
+          app = feathersStubs.app();
+          users = feathersStubs.users(app, db, ifNonPaginated, idType);
+          verifyResetService().call(app); // define and attach verifyReset service
+          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+        });
+
+        it('updates unverified user', (done) => {
+          const email = 'a';
+          const i = 0;
+
+          verifyReset.create({ action: 'resend', value: email }, {})
+            .then(user => {
+              assert.strictEqual(user.isVerified, false, 'user.isVerified not false');
+
+              assert.strictEqual(db[i].isVerified, false, 'isVerified not false');
+              assert.isString(db[i].verifyToken, 'verifyToken not String');
+              assert.equal(db[i].verifyToken.length, 30, 'verify token wrong length');
+              aboutEqualDateTime(db[i].verifyExpires, makeDateTime());
+
+              done();
+            })
+            .catch(err => {
+              assert.fail(true, false, 'unexpected rejection');
+            });
+        });
+
+
+        it('error on verified user', (done) => {
+          const email = 'b';
+          verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
+            assert.equal(err.message, 'User is already verified.');
+
+            done();
+          });
+        });
+
+        it('error on email not found', (done) => {
+          const email = 'x';
+          verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
+            assert.equal(err.message, 'Email or verify token not found.');
+
+            done();
+          });
+        });
+      });
+      */
     });
   });
 });

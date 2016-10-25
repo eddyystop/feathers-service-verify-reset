@@ -162,7 +162,7 @@ function emailer(action, user, params, cb) {
 }
 
 function sanitizeUserForEmail(user) {
-  const user1 = clone(user);
+  const user1 = Object.assign({}, user);
 
   delete user1.password;
 
