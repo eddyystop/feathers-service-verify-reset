@@ -263,7 +263,6 @@ const usersDb = [
         });
       });
 
-      /*
       describe('works as Promise', () => {
         var db;
         var app;
@@ -298,7 +297,7 @@ const usersDb = [
             });
         });
 
-
+/*
         it('error on verified user', (done) => {
           const email = 'b';
           verifyReset.create({ action: 'resend', value: email }, {}, (err, user) => {
@@ -316,8 +315,8 @@ const usersDb = [
             done();
           });
         });
+        */
       });
-      */
     });
   });
 });

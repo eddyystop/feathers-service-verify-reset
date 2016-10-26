@@ -25,7 +25,7 @@ function emailer(action, user1, params, cb) {
 
   switch (action) {
     case 'resend':
-      console.log(`-- Resending email to ${user1.email} to verify new user\'s email addr`);
+      console.log(`-- Resending email to ${user1.email} to verify new user's email addr`);
       console.log(`Dear ${user1.username}, please click this link to verify your email addr.`);
       console.log(`  http://localhost:3030/${slugForUrl}/verify/${user1.verifyToken}`);
       return cb(null);

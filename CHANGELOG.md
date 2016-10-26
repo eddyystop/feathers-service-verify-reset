@@ -1,5 +1,31 @@
 # Notable changes to feathers-service-verify-reset
 
+## 0.8.0
+### Enhancements
+- The repo has been rewritten to use Promises throughout.
+- A promise is returned when an API call does not include a callback function.
+- `hooks.removeVerification` warns on `users::create` if the `isVerified` property is not found.
+This could occur when using a model driven DB where the
+[5 fields](./README.md#-database)
+required by this repo have not been added to the model.
+It may also occur if `hooks.addVerification` was not added as a `before` hook.
+- Example UI no longer shows a wrong URL for verification resend as this was a security loophole.
+That URL is logged to the console.
+- Dependencies updated.
+### Docs
+- README updated for APIs returning Promises.
+- README updated for required database fields.
+### Thanks
+- [beeplin](https://github.com/beeplin)
+for [getting us to convert to Promises](https://github.com/eddyystop/feathers-service-verify-reset/issues/12).
+
+## 0.7.0
+### Enhancements
+- Feathers promises are used internally rather than callbacks.
+The Promises are converted to callbacks by the repo.
+There was a report that feathers-mongo had swallowed a duplicate key error on the server.
+Hopefully this will prevent that if it does happen.
+
 ## 0.6.1
 ### Fixes
 - Changes to `users` done using `.patch`. Patch hooks may not change `password`.
@@ -100,3 +126,4 @@ controls how long the sign up verification email is valid for (ms).
 For catching bugs, pull requests, comments to:
 - [codingfriend1](https://github.com/codingfriend1)
 for [non-paginated users](https://github.com/eddyystop/feathers-service-verify-reset/issues/4).
+

@@ -99,6 +99,8 @@ function addUser() {
     return;
   }
 
+  // We are not checking that the email is unique.
+  // You could do verifyReset.unique({ email }).then(() => unique).catch(errs => what's not unique)
   users.create(user, (err, user1) => {
     if (err) {
       errorHandler(err);
@@ -133,8 +135,8 @@ function resendVerify() {
 
     console.log('user verification changed', user);
 
-    verifyEl.href = `http://localhost:3030/${apiType}/verify/${user.verifyToken}`;
-    verifyEl.text = `http://localhost:3030/${apiType}/verify/${user.verifyToken}`;
+    verifyEl.href = '';
+    verifyEl.text = '';
   });
 }
 

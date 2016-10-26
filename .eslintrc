@@ -11,6 +11,7 @@
     "jsdoc",
   ],
   "rules": { // override airbnb rules, add other rules
+    "arrow-parens": 0, // Expected parentheses around arrow function argument having a body with curly braces
     "func-names": 0,
     "import/no-extraneous-dependencies": 0,
     "import/no-named-as-default": 0,

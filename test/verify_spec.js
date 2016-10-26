@@ -12,9 +12,10 @@ const SpyOn = require('./../test/helpers/basicSpy');
 
 const now = Date.now();
 const usersDb = [
-  { _id: 'a', email: 'a', isVerified: false, verifyToken: '000', verifyExpires: now + 50000 },
+  // The added time interval must be longer than it takes to run ALL the tests
+  { _id: 'a', email: 'a', isVerified: false, verifyToken: '000', verifyExpires: now + 100000 },
   { _id: 'b', email: 'b', isVerified: true, verifyToken: null, verifyExpires: null },
-  { _id: 'c', email: 'c', isVerified: false, verifyToken: '111', verifyExpires: now - 50000 },
+  { _id: 'c', email: 'c', isVerified: false, verifyToken: '111', verifyExpires: now - 100000 },
 ];
 
 // Tests

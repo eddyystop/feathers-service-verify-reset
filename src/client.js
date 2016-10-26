@@ -15,9 +15,7 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
       value: uniques,
       ownId,
       meta: { noErrMsg: ifErrMsg },
-    }, {})
-      .then(() => cb())
-      .catch(err => cb(err));
+    }, {}, cb);
   };
 
   this.resendVerify = function resendVerify(emailOrToken, cb) {

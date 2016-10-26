@@ -79,8 +79,7 @@ module.exports.service = function (options) {
 
         switch (data.action) {
           case 'unique':
-            // the 'return' is needed as this return a promise
-            return checkUniqueness(data.value, data.ownId || null, data.meta || {});
+            return checkUniqueness(data.value, data.ownId || null, data.meta || {}, cb);
           case 'resend':
             return resendVerifySignUp(data.value, cb);
           case 'verify':
@@ -99,51 +98,47 @@ module.exports.service = function (options) {
       },
     });
 
-    function checkUniqueness(uniques, ownId, meta) {
-      const errs = {};
+    function checkUniqueness(uniques, ownId, meta, cb) {
       const keys = Object.keys(uniques).filter(
         key => uniques[key] !== undefined && uniques[key] !== null);
-      let keysLeft = keys.length;
 
-      return new Promise((resolve, reject) => {
-        if (!keysLeft) {
-          return resolve();
-        }
+      const promise = Promise.all(
+        keys.map(prop => users.find({ query: { [prop]: uniques[prop].trim() } })
+          .then(data => {
+            const items = Array.isArray(data) ? data : data.data;
+            const isNotUnique = items.length > 1
+              || (items.length === 1 && (items[0].id || items[0]._id) !== ownId);
 
-        keys.forEach(prop => {
-          debug(`query ${prop}:${uniques[prop].trim()}`);
-          users.find({ query: { [prop]: uniques[prop].trim() /* , $limit: 1 */ } }) // 1 as unique
-            .then(data => {
-              const items = Array.isArray(data) ? data : data.data;
-              if (items.length > 1
-                || (items.length === 1 && (items[0].id || items[0]._id) !== ownId)
-              ) {
-                errs[prop] = 'Already taken.';
-              }
+            return isNotUnique ? prop : null;
+          })
+        ))
+        .catch(err => {
+          throw new errors.GeneralError(err);
+        })
+        .then(allProps => {
+          const errProps = allProps.filter(prop => prop);
 
-              // Check results on last async operation
-              if (--keysLeft <= 0) {
-                if (!Object.keys(errs).length) {
-                  resolve();
-                }
+          if (errProps.length) {
+            const errs = {};
+            errProps.forEach(prop => { errs[prop] = 'Already taken.'; });
 
-                reject(new errors.BadRequest(
-                  meta.noErrMsg ? null : 'Values already taken.', { errors: errs }
-                ));
-              }
-            })
-            .catch(err => {
-              reject(new errors.GeneralError(err));
-            });
+            throw new errors.BadRequest(meta.noErrMsg ? null : 'Values already taken.',
+              { errors: errs }
+            );
+          }
         });
-      });
+
+      if (cb) {
+        promiseToCallback(promise)(cb);
+      }
+
+      return promise;
     }
 
     function resendVerifySignUp(emailOrToken, cb) {
       debug('resend', emailOrToken);
       var query = {};
 
-      // form query string
       if (typeof emailOrToken === 'string') {
         query = { email: emailOrToken };
       } else {
@@ -155,41 +150,50 @@ module.exports.service = function (options) {
         }
       }
 
-      users.find({ query })
+      const findUser = query1 => users.find({ query: query1 })
         .then(data => {
           if (Array.isArray(data) ? data.length === 0 : data.total === 0) {
-            return cb(new errors.BadRequest('Email or verify token not found.',
+            throw new errors.BadRequest('Email or verify token not found.',
               { errors: { email: 'Not found.', token: 'Not found.' } }
-            ));
+            );
           }
 
           const user = Array.isArray(data) ? data[0] : data.data[0]; // 1 entry as emails are unique
 
           if (user.isVerified) {
-            return cb(new errors.BadRequest('User is already verified.',
+            throw new errors.BadRequest('User is already verified.',
               { errors: { email: 'User is already verified.', token: 'User is already verified.' } }
-            ));
+            );
           }
 
-          crypto.randomBytes(options.len || 15, (err, buf) => {
-            if (err) { throw new errors.GeneralError(err); }
-
-            return patchUserAndSendEmail(user, 'resend', cb, {
-              isVerified: false,
-              verifyExpires: Date.now() + defaultVerifyDelay,
-              verifyToken: buf.toString('hex'),
-            });
-          });
-        })
-        .catch(err => {
-          throw new errors.GeneralError(err);
+          return user;
         });
+
+      const promise = Promise.all([
+        findUser(query),
+        randomBytes(options.len || 15),
+      ])
+        .then(([user, randomStr]) =>
+          patchUser(user, {
+            isVerified: false,
+            verifyExpires: Date.now() + defaultVerifyDelay,
+            verifyToken: randomStr,
+          })
+        )
+        .then(user => sendEmail('resend', user))
+        .then(user => sanitizeUserForClient(user));
+
+      if (cb) {
+        promiseToCallback(promise)(cb);
+      }
+
+      return promise;
     }
 
     function verifySignUp(token, cb) {
       debug(`verify ${token}`);
 
-      users.find({ query: { verifyToken: token } })
+      const findUser = () => users.find({ query: { verifyToken: token } })
         .then(data => {
           if (Array.isArray(data) ? data.length === 0 : data.total === 0) {
             return cb(new errors.BadRequest(
@@ -205,39 +209,43 @@ module.exports.service = function (options) {
             ));
           }
 
-          user.isVerified = user.verifyExpires > Date.now();
-          user.verifyExpires = null;
-          user.verifyToken = null;
-          if ('resetToken' in user) {
-            user.resetToken = null;
-          }
-          if ('resetExpires' in user) {
-            user.resetExpires = null;
-          }
+          return user;
+        });
 
-          if (!user.isVerified) {
-            return cb(new errors.BadRequest(
+      const promise = findUser()
+        .then(user => {
+          const patchToUser = {
+            isVerified: user.verifyExpires > Date.now(),
+            verifyExpires: null,
+            verifyToken: null,
+          };
+
+          if ('resetToken' in user) { patchToUser.resetToken = null; }
+          if ('resetExpires' in user) { patchToUser.resetExpires = null; }
+
+          if (!patchToUser.isVerified) {
+            throw new errors.BadRequest(
               'Verification token has expired.',
               { errors: { $className: 'expired' } }
-            ));
+            );
           }
 
-          return patchUserAndSendEmail(user, 'verify', cb, {
-            isVerified: user.isVerified,
-            verifyExpires: user.verifyExpires,
-            verifyToken: user.verifyToken,
-            resetToken: user.resetToken,
-            resetExpires: user.resetExpires,
-          });
+          return patchUser(user, patchToUser);
         })
-        .catch(err => {
-          throw new errors.GeneralError(err);
-        });
+        .then(user => sendEmail('verify', user))
+        .then(user => sanitizeUserForClient(user));
+
+      if (cb) {
+        promiseToCallback(promise)(cb);
+      }
+
+      return promise;
     }
 
     function sendResetPwd(email, cb) {
       debug('forgot');
-      users.find({ query: { email } })
+
+      const findUser = () => users.find({ query: { email } })
         .then(data => {
           if (Array.isArray(data) ? data.length === 0 : data.total === 0) {
             return cb(new errors.BadRequest(
@@ -252,163 +260,187 @@ module.exports.service = function (options) {
               'Email is not yet verified.', { errors: { email: 'Not verified.' } }
             ));
           }
-          crypto.randomBytes(15, (err, buf) => {
-            if (err) {
-              throw new errors.GeneralError(err);
-            }
 
-            return patchUserAndSendEmail(user, 'forgot', cb, {
-              resetExpires: Date.now() + resetDelay,
-              resetToken: buf.toString('hex'),
-            });
-          });
-        })
-        .catch(err => {
-          throw new errors.GeneralError(err);
+          return user;
         });
+
+      const promise = Promise.all([
+        findUser(),
+        randomBytes(options.len || 15),
+      ])
+        .then(([user, randomStr]) =>
+          patchUser(user, {
+            resetExpires: Date.now() + resetDelay,
+            resetToken: randomStr,
+          })
+        )
+        .then(user => sendEmail('forgot', user))
+        .then(user => sanitizeUserForClient(user));
+
+      if (cb) {
+        promiseToCallback(promise)(cb);
+      }
+
+      return promise;
     }
 
     function resetPwd(token, password, cb) {
       debug('reset', token, password);
-      users.find({ query: { resetToken: token } })
+
+      const findUser = () => users.find({ query: { resetToken: token } })
         .then(data => {
           if (Array.isArray(data) ? data.length === 0 : data.total === 0) {
-            return cb(new errors.BadRequest(
+            throw new errors.BadRequest(
               'Reset token not found.', { errors: { $className: 'notFound' } }
-            ));
+            );
           }
 
           const user = Array.isArray(data) ? data[0] : data.data[0]; // 1 entry as emails are unique
 
           if (!user.isVerified) {
-            return cb(new errors.BadRequest(
+            throw new errors.BadRequest(
               'Email is not verified.', { errors: { $className: 'notVerified' } }
-            ));
+            );
           }
           if (user.resetExpires < Date.now()) {
-            return cb(new errors.BadRequest(
+            throw new errors.BadRequest(
               'Reset token has expired.', { errors: { $className: 'expired' } }
-            ));
+            );
           }
 
-          // hash the password just like create: [ auth.hashPassword() ]
-
-          const hook = {
-            type: 'before',
-            data: { password },
-            params: { provider: null },
-            app: {
-              get(str) {
-                return app.get(str);
-              },
-            },
-          };
-
-          debug('reset. hashing password.');
-          auth.hashPassword()(hook)
-            .then(hook1 => patchUserAndSendEmail(user, 'reset', cb, {
-              password: hook1.data.password,
-              resetToken: null,
-              resetExpires: null,
-            })
-          );
-        })
-        .catch(err => {
-          throw new errors.GeneralError(err);
+          return user;
         });
+
+      const promise = Promise.all([
+        findUser(),
+        hashPassword(app, password),
+      ])
+        .then(([user, hashedPassword]) =>
+          patchUser(user, {
+            password: hashedPassword,
+            resetToken: null,
+            resetExpires: null,
+          })
+        )
+        .then(user => sendEmail('reset', user))
+        .then(user => sanitizeUserForClient(user));
+
+      if (cb) {
+        promiseToCallback(promise)(cb);
+      }
+
+      return promise;
     }
 
     function passwordChange(user, oldPassword, password, cb) {
-      // get user to obtain current password
-      users.find({ query: { email: user.email } })
-        .then(data => {
-          const user1 = Array.isArray(data) ? data[0] : data.data[0]; // email is unique
+      debug('password', oldPassword, password);
 
-          // compare old password to encrypted current password
-          bcrypt.compare(oldPassword, user1.password, (err, data1) => {
-            if (err || !data1) {
-              return cb(new errors.BadRequest('Current password is incorrect.',
-                { errors: { oldPassword: 'Current password is incorrect.' } }
-              ));
-            }
+      const findUser = () => users.find({ query: { email: user.email } })
+        .then(data => (Array.isArray(data) ? data[0] : data.data[0])); // email is unique
 
-            // encrypt the new password
-            const hook = {
-              type: 'before',
-              data: { password },
-              params: { provider: null },
-              app: {
-                get(str) {
-                  return app.get(str);
-                },
-              },
-            };
-            auth.hashPassword()(hook)
-              .then(hook1 => patchUserAndSendEmail(user1, 'password', cb, {
-                password: hook1.data.password,
-              })
-            );
-          });
-        })
-        .catch(err => {
-          cb(new errors.GeneralError(err));
-        });
+      const promise = findUser()
+        .then(user1 => Promise.all([
+          user1,
+          hashPassword(app, password),
+          comparePasswords(oldPassword, user1.password,
+            () => new errors.BadRequest('Current password is incorrect.',
+              { errors: { oldPassword: 'Current password is incorrect.' } })
+          ),
+        ]))
+        .then(([user1, hashedPassword]) => // value from comparePassword is not needed
+          patchUser(user1, {
+            password: hashedPassword,
+          })
+        )
+        .then(user1 => sendEmail('password', user1))
+        .then(user1 => sanitizeUserForClient(user1));
+
+      if (cb) {
+        promiseToCallback(promise)(cb);
+      }
+
+      return promise;
     }
 
-
-    // note this call does not update the authenticated user info in hooks.params.user.
     function emailChange(user, password, email, cb) {
-      // get user to obtain current password
-      const idType = user._id ? '_id' : 'id';
-      users.find({ query: { [idType]: user[idType] } })
-        .then(data => {
-          const user1 = Array.isArray(data) ? data[0] : data.data[0]; // email is unique
+      // note this call does not update the authenticated user info in hooks.params.user.
+      debug('email', password, email);
 
-          // compare old password to encrypted current password
-          bcrypt.compare(password, user1.password, (err, data1) => {
-            if (err || !data1) {
-              return cb(new errors.BadRequest('Password is incorrect.',
-                { errors: { password: 'Password is incorrect.' } }
-              ));
-            }
+      const findUser = () => {
+        const idType = user._id ? '_id' : 'id';
+        return users.find({ query: { [idType]: user[idType] } })
+          .then(data => (Array.isArray(data) ? data[0] : data.data[0])); // id is unique
+      };
 
-            // send email
-            const user3 = sanitizeUserForEmail(user1);
-            user3.newEmail = email;
-            emailer('email', sanitizeUserForEmail(user3), params, () => {});
+      const promise = findUser()
+        .then(user1 => Promise.all([
+          user1,
+          comparePasswords(password, user1.password,
+            () => new errors.BadRequest('Password is incorrect.',
+              { errors: { password: 'Password is incorrect.' } })
+          ),
+        ]))
+        .then(([user1]) => sendEmail('email', user1, email)) // value from comparePassword not need
+        .then(user1 => patchUser(user1, { email }))
+        .then(user1 => sanitizeUserForClient(user1));
 
-            return patchUserAndSendEmail(user1, 'email', cb, { email }, false);
-          });
-        })
-        .catch(err => {
-          cb(new errors.GeneralError(err));
-        });
+      if (cb) {
+        promiseToCallback(promise)(cb);
+      }
+
+      return promise;
     }
 
     // Helpers
 
-    function patchUserAndSendEmail(user /* modified */, emailAction, cb, patchToUser, ifEmail) {
-      debug(`${emailAction}. Patch user.`);
-      Object.assign(user, patchToUser);
-      if (ifEmail === undefined) {
-        ifEmail = true;
-      }
+    function randomBytes(len) {
+      return new Promise((resolve, reject) => {
+        crypto.randomBytes(len, (err, buf) => (err ? reject(err) : resolve(buf.toString('hex'))));
+      });
+    }
 
-      const promise = users.patch(user.id || user._id, patchToUser, {})
-        .then(() => new Promise((resolve, reject) => {
-          if (!ifEmail) {
-            return resolve();
+    function hashPassword(app1, password) {
+      const hook = {
+        type: 'before',
+        data: { password },
+        params: { provider: null },
+        app: {
+          get(str) {
+            return app1.get(str);
+          },
+        },
+      };
+
+      return auth.hashPassword()(hook)
+        .then(hook1 => hook1.data.password);
+    }
+
+    function comparePasswords(oldPassword, password, getError) {
+      return new Promise((resolve, reject) => {
+        bcrypt.compare(oldPassword, password, (err, data1) => {
+          if (err || !data1) {
+            return reject(getError());
           }
 
-          emailer(emailAction, sanitizeUserForEmail(user), params, err2 => {
-            debug(`${emailAction}. Completed.`);
-            return err2 ? reject(err2) : resolve();
-          });
-        })
-        )
-        .then(() => sanitizeUserForClient(user));
+          return resolve();
+        });
+      });
+    }
 
-      return cb ? promiseToCallback(promise)(cb) : promise;
+    function patchUser(user /* modified */, patchToUser) {
+      return users.patch(user.id || user._id, patchToUser, {})
+        .then(() => Object.assign(user, patchToUser));
+    }
+
+    function sendEmail(emailAction, user, email) {
+      const user1 = Object.assign({}, user, email ? { newEmail: email } : {});
+
+      return new Promise((resolve, reject) => {
+        emailer(emailAction, sanitizeUserForEmail(user1), params, err2 => {
+          debug(`${emailAction}. Completed.`);
+          return err2 ? reject(err2) : resolve(user);
+        });
+      });
     }
 
     function promiseToCallback(promise) {
@@ -420,6 +452,8 @@ module.exports.service = function (options) {
           err => {
             process.nextTick(cb, err);
           });
+
+        return null;
       };
     }
 
@@ -437,9 +471,7 @@ module.exports.service = function (options) {
 
     function sanitizeUserForEmail(user) {
       const user1 = Object.assign({}, user);
-
       delete user1.password;
-
       return user1;
     }
   };
@@ -475,6 +507,14 @@ module.exports.hooks.restrictToVerified = () => (hook) => {
 module.exports.hooks.removeVerification = (ifReturnTokens) => (hook) => {
   utils.checkContext(hook, 'after');
   const user = (hook.result || {});
+
+  if (!('isVerified' in user) && hook.method === 'create') {
+    /* eslint-disable no-console */
+    console.warn('Property isVerified not found in user properties. (removeVerification)');
+    console.warn('Have you added verify-reset\'s properties to your model? (Refer to README.md)');
+    console.warn('Have you added the addVerification hook on users::create?');
+    /* eslint-enable */
+  }
 
   if (hook.params.provider && user) { // noop if initiated by server
     delete user.verifyExpires;

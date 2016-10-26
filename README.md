@@ -92,6 +92,20 @@ function emailVerification(hook, next) {
 }
 ```
 
+#### <a name="database"> Database
+
+The service adds the following optional properties to the user item.
+You should add them to your user model if your database uses models.
+
+```javascript
+{
+  isVerified: { type: Boolean },
+  verifyToken: { type: String },
+  verifyExpires: { type: Date }, // or a long integer
+  resetToken: { type: String },
+  resetExpires: { type: Date }, // or a long integer
+}
+```
 
 
 ### Client
@@ -144,6 +158,10 @@ verifyReset.changePassword(oldPassword, newPassword, currentUser, (err, user) =>
 // Change the email and send a confirmation email to the old email address..
 verifyReset.changeEmail(password, newEmail, currentUser, (err, user) => { ... });
 ```
+
+A promise is always returned by each API.
+The callback, if provided, is invoked in a scope outside the Promise chain
+so any error in the callback will not cause a `.catch` to fire.
 
 ### Routing
 
