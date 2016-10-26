@@ -12,9 +12,12 @@ It may also occur if `hooks.addVerification` was not added as a `before` hook.
 - Example UI no longer shows a wrong URL for verification resend as this was a security loophole.
 That URL is logged to the console.
 - Dependencies updated.
+
 ### Docs
 - README updated for APIs returning Promises.
-- README updated for required database fields.
+- README updated for required database fields.git status
+
+
 ### Thanks
 - [beeplin](https://github.com/beeplin)
 for [getting us to convert to Promises](https://github.com/eddyystop/feathers-service-verify-reset/issues/12).
