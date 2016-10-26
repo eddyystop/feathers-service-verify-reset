@@ -9,8 +9,9 @@ This could occur when using a model driven DB where the
 [5 fields](./README.md#-database)
 required by this repo have not been added to the model.
 It may also occur if `hooks.addVerification` was not added as a `before` hook.
-- Example UI no longer shows a wrong URL for verification resend as this was a security loophole.
-That URL is logged to the console.
+- Example UI no longer shows a wrong URL for verification resend.
+That was a result of closing a security loophole.
+The resend URL is logged to the console.
 - Dependencies updated.
 
 ### Docs
