@@ -22,48 +22,63 @@ describe('hook:addVerification', () => {
   });
 
   it('works with no options', (done) => {
-    hooks.addVerification()(hookIn, (err, hook) => {
-      const user = hook.data;
+    hooks.addVerification()(hookIn)
+      .then(hook => {
+        const user = hook.data;
 
-      assert.strictEqual(err, null, 'err code set');
-      assert.strictEqual(user.isVerified, false, 'isVerified not false');
-      assert.isString(user.verifyToken, 'verifyToken not String');
-      assert.equal(user.verifyToken.length, 30, 'verify token wrong length');
-      aboutEqualDateTime(user.verifyExpires, makeDateTime());
+        assert.strictEqual(user.isVerified, false, 'isVerified not false');
+        assert.isString(user.verifyToken, 'verifyToken not String');
+        assert.equal(user.verifyToken.length, 30, 'verify token wrong length');
+        aboutEqualDateTime(user.verifyExpires, makeDateTime());
 
-      done();
-    });
+        done();
+      })
+      .catch(err => {
+        assert.fail(true, false, 'unexpected error');
+
+        done();
+      });
   });
 
   it('delay option works', (done) => {
     options = { delay: 1000 * 60 * 60 * 24 * 15 }; // 5 days}
 
-    hooks.addVerification(options)(hookIn, (err, hook) => {
-      const user = hook.data;
+    hooks.addVerification(options)(hookIn)
+      .then(hook => {
+        const user = hook.data;
 
-      assert.strictEqual(err, null, 'err code set');
-      assert.strictEqual(user.isVerified, false, 'isVerified not false');
-      assert.isString(user.verifyToken, 'verifyToken not String');
-      assert.equal(user.verifyToken.length, 30, 'verify token wrong length');
-      aboutEqualDateTime(user.verifyExpires, makeDateTime(options));
+        assert.strictEqual(user.isVerified, false, 'isVerified not false');
+        assert.isString(user.verifyToken, 'verifyToken not String');
+        assert.equal(user.verifyToken.length, 30, 'verify token wrong length');
+        aboutEqualDateTime(user.verifyExpires, makeDateTime(options));
 
-      done();
-    });
+        done();
+      })
+      .catch(err => {
+        assert.fail(true, false, 'unexpected error');
+
+        done();
+      });
   });
 
   it('length option works', (done) => {
     options = { len: 10 };
-    hooks.addVerification(options)(hookIn, (err, hook) => {
-      const user = hook.data;
+    hooks.addVerification(options)(hookIn)
+      .then(hook => {
+        const user = hook.data;
 
-      assert.strictEqual(err, null, 'err code set');
-      assert.strictEqual(user.isVerified, false, 'isVerified not false');
-      assert.isString(user.verifyToken, 'verifyToken not String');
-      assert.equal(user.verifyToken.length, options.len * 2, 'verify token wrong length');
-      aboutEqualDateTime(user.verifyExpires, makeDateTime(options));
+        assert.strictEqual(user.isVerified, false, 'isVerified not false');
+        assert.isString(user.verifyToken, 'verifyToken not String');
+        assert.equal(user.verifyToken.length, options.len * 2, 'verify token wrong length');
+        aboutEqualDateTime(user.verifyExpires, makeDateTime(options));
 
-      done();
-    });
+        done();
+      })
+      .catch(err => {
+        assert.fail(true, false, 'unexpected error');
+
+        done();
+      });
   });
 
   it('throws if not before', () => {

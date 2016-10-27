@@ -393,12 +393,6 @@ module.exports.service = function (options) {
 
     // Helpers
 
-    function randomBytes(len) {
-      return new Promise((resolve, reject) => {
-        crypto.randomBytes(len, (err, buf) => (err ? reject(err) : resolve(buf.toString('hex'))));
-      });
-    }
-
     function hashPassword(app1, password) {
       const hook = {
         type: 'before',
@@ -427,7 +421,7 @@ module.exports.service = function (options) {
       });
     }
 
-    function patchUser(user /* modified */, patchToUser) {
+    function patchUser(user, patchToUser) {
       return users.patch(user.id || user._id, patchToUser, {})
         .then(() => Object.assign(user, patchToUser));
     }
@@ -481,20 +475,21 @@ module.exports.service = function (options) {
 
 module.exports.hooks = {};
 
-module.exports.hooks.addVerification = (options) => (hook, next) => {
+module.exports.hooks.addVerification = (options) => (hook) => {
   options = options || {};
   utils.checkContext(hook, 'before', 'create');
 
-  crypto.randomBytes(options.len || 15, (err, buf) => {
-    if (err) { throw new errors.GeneralError(err); }
+  return randomBytes(options.len || 15)
+    .then(token => {
+      hook.data.isVerified = false;
+      hook.data.verifyExpires = Date.now() + (options.delay || defaultVerifyDelay);
+      hook.data.verifyToken = token;
 
-    hook.data.isVerified = false;
-    hook.data.verifyExpires = Date.now() + (options.delay || defaultVerifyDelay);
-    hook.data.verifyToken = buf.toString('hex');
-
-    next(null, hook);
-  });
+      return hook
+    })
+    .catch(err => { throw new errors.GeneralError(err); });
 };
+
 
 module.exports.hooks.restrictToVerified = () => (hook) => {
   utils.checkContext(hook, 'before');
@@ -525,3 +520,11 @@ module.exports.hooks.removeVerification = (ifReturnTokens) => (hook) => {
     }
   }
 };
+
+// Helpers
+
+function randomBytes(len) {
+  return new Promise((resolve, reject) => {
+    crypto.randomBytes(len, (err, buf) => (err ? reject(err) : resolve(buf.toString('hex'))));
+  });
+}
