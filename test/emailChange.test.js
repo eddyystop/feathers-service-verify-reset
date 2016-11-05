@@ -14,11 +14,11 @@ const SpyOn = require('./../test/helpers/basicSpy');
 // user DB
 
 const usersDb = [
-  { _id: 'a', email: 'a', plainPassword: 'aa', plainNewPassword: 'xx', isVerified: false },
-  { _id: 'b', email: 'b', plainPassword: 'bb', plainNewPassword: 'yy', isVerified: true },
+  { _id: 'a', email: 'a', plainPassword: 'aa', isVerified: false },
+  { _id: 'b', email: 'b', plainPassword: 'bb', isVerified: true },
 ];
 
-describe('verifyReset::password - setup', () => {
+describe('emailChange - setup', () => {
   it('encode passwords', function (done) {
     this.timeout(9000);
 
@@ -30,14 +30,6 @@ describe('verifyReset::password - setup', () => {
       encrypt(feathersStubs.app(), usersDb[1].plainPassword)
         .then(password => {
           usersDb[1].password = password;
-        }),
-      encrypt(feathersStubs.app(), usersDb[0].plainNewPassword)
-        .then(password => {
-          usersDb[0].newPassword = password;
-        }),
-      encrypt(feathersStubs.app(), usersDb[1].plainNewPassword)
-        .then(password => {
-          usersDb[1].newPassword = password;
         }),
     ])
       .then(() => {
@@ -51,9 +43,6 @@ describe('verifyReset::password - setup', () => {
 
     assert.isOk(bcrypt.compareSync(usersDb[0].plainPassword, usersDb[0].password), '[0]');
     assert.isOk(bcrypt.compareSync(usersDb[1].plainPassword, usersDb[1].password), '[1]');
-
-    assert.isOk(bcrypt.compareSync(usersDb[0].plainNewPassword, usersDb[0].newPassword), 'new [0]');
-    assert.isOk(bcrypt.compareSync(usersDb[1].plainNewPassword, usersDb[1].newPassword), 'new [1]');
   });
 });
 
@@ -61,7 +50,7 @@ describe('verifyReset::password - setup', () => {
 
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    describe(`verifyReset::password ${pagination} ${idType}`, () => {
+    describe(`emailChange ${pagination} ${idType}`, () => {
       const ifNonPaginated = pagination === 'non-paginated';
 
       describe('standard', () => {
@@ -82,18 +71,14 @@ describe('verifyReset::password - setup', () => {
           this.timeout(9000);
           const i = 1;
           const user = clone(db[i]);
-          const paramsUser = clone(user);
-          delete paramsUser.password;
+          const email = 'b@b';
 
           verifyReset.create({
-            action: 'password',
-            value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
-          }, { user: paramsUser }, (err, user) => {
+            action: 'email', value: { password: user.plainPassword, email },
+          }, { user }, (err, user) => {
             assert.strictEqual(err, null, 'err code set');
-
             assert.strictEqual(user.isVerified, true, 'isVerified not true');
-
-            assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
+            assert.equal(db[i].email, email);
 
             done();
           });
@@ -103,18 +88,14 @@ describe('verifyReset::password - setup', () => {
           this.timeout(9000);
           const i = 0;
           const user = clone(db[i]);
-          const paramsUser = clone(user);
-          delete paramsUser.password;
+          const email = 'a@a';
 
           verifyReset.create({
-            action: 'password',
-            value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
-          }, { user: paramsUser }, (err, user) => {
+            action: 'email', value: { password: user.plainPassword, email },
+          }, { user }, (err, user) => {
             assert.strictEqual(err, null, 'err code set');
-
             assert.strictEqual(user.isVerified, false, 'isVerified not false');
-
-            assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
+            assert.equal(db[i].email, email);
 
             done();
           });
@@ -124,13 +105,13 @@ describe('verifyReset::password - setup', () => {
           this.timeout(9000);
           const i = 0;
           const user = clone(db[i]);
+          const email = 'a@a';
 
           verifyReset.create({
-            action: 'password',
-            value: { oldPassword: 'fdfgfghghj', password: user.plainNewPassword },
+            action: 'email', value: { password: 'ghghghg', email },
           }, { user }, (err, user) => {
-            assert.equal(err.message, 'Current password is incorrect.');
-            assert.deepEqual(err.errors, { oldPassword: 'Current password is incorrect.' });
+            assert.isString(err.message);
+            assert.isNotFalse(err.message);
 
             done();
           });
@@ -157,28 +138,34 @@ describe('verifyReset::password - setup', () => {
         it('updates verified user', function (done) {
           this.timeout(9000);
           const i = 1;
-          const user = clone(db[i]);
-          const paramsUser = clone(user);
-          delete paramsUser.password;
-
-
-          verifyReset.create({
-            action: 'password',
-            value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
-          }, { user: paramsUser }, (err, user) => {
-            assert.strictEqual(err, null, 'err code set');
-
-            assert.strictEqual(user.isVerified, true, 'isVerified not true');
-
-            assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
-
-            assert.deepEqual(spyEmailer.result(), [
-              { args: ['password', sanitizeUserForEmail(db[i]), { user: paramsUser }],
-                result: [null] },
-            ]);
-
-            done();
-          });
+          const paramsUser = clone(db[i]);
+          const oldEmail = db[i].email;
+          const email = 'b@b';
+          const emailUser = clone(db[i]);
+          emailUser.newEmail = email;
+  
+          verifyReset.create(
+            { action: 'email', value: { password: paramsUser.plainPassword, email } },
+            { user: paramsUser },
+            (err, user) => {
+              assert.strictEqual(err, null, 'err code set');
+              assert.strictEqual(user.isVerified, true, 'isVerified not true');
+              assert.equal(db[i].email, email);
+              
+              assert.deepEqual(spyEmailer.result(), [
+                {
+                  args: [
+                    'email',
+                    Object.assign(sanitizeUserForEmail(db[i]), { email: oldEmail, newEmail: email }),
+                    {},
+                    email,
+                  ],
+                  result: [null],
+                },
+              ]);
+      
+              done();
+            });
         });
       });
     });
@@ -203,7 +190,7 @@ function encrypt(app, password) {
     .catch(err => console.log('encrypt', err)); // eslint-disable-line no-console
 }
 
-function emailer(action, user, params, cb) {
+function emailer(action, user, notifierOptions, newEmail, cb) {
   cb(null);
 }
 

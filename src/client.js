@@ -9,58 +9,72 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
 
   const verifyReset = app.service('/verifyReset/:action/:value');
 
-  this.unique = function unique(uniques, ownId, ifErrMsg, cb) {
+  this.checkUnique = (uniques, ownId, ifErrMsg, cb) => {
     verifyReset.create({
-      action: 'unique',
+      action: 'checkUnique',
       value: uniques,
       ownId,
       meta: { noErrMsg: ifErrMsg },
     }, {}, cb);
   };
 
-  this.resendVerify = function resendVerify(emailOrToken, cb) {
+  this.resendVerify = (emailOrToken, cb) => {
     verifyReset.create({
-      action: 'resend',
+      action: 'resendVerify',
       value: emailOrToken,
     }, {}, cb);
   };
 
-  this.verifySignUp = function verifySignUp(slug, cb) {
+  this.verifySignupLong = (token, cb) => {
     verifyReset.create({
-      action: 'verify',
-      value: slug,
+      action: 'verifySignupLong',
+      value: token,
+    }, {}, cb);
+  };
+  
+  this.verifySignupShort = (token, userFind, cb) => {
+    verifyReset.create({
+      action: 'verifySignupLong',
+      value: { token, user: userFind }
     }, {}, cb);
   };
 
-  this.sendResetPassword = function sendResetPassword(email, cb) {
+  this.sendResetPwd = (email, cb) => {
     verifyReset.create({
-      action: 'forgot',
+      action: 'sendResetPwd',
       value: email,
     }, {}, cb);
   };
 
-  this.saveResetPassword = function saveResetPassword(token, password, cb) {
+  this.resetPwdLong = (token, password, cb) => {
     verifyReset.create({
-      action: 'reset',
+      action: 'resetPwdLong',
       value: { token, password },
     }, {}, cb);
   };
-
-  this.changePassword = function changePassword(oldPassword, password, user, cb) {
+  
+  this.resetPwdShort = (token, userFind, password, cb) => {
     verifyReset.create({
-      action: 'password',
+      action: 'resetPwdLong',
+      value: { token, password, user: userFind },
+    }, {}, cb);
+  };
+
+  this.passwordChange = (oldPassword, password, user, cb) => {
+    verifyReset.create({
+      action: 'passwordChange',
       value: { oldPassword, password },
     }, { user }, cb);
   };
 
-  this.changeEmail = function changeEmail(password, email, user, cb) {
+  this.emailChange = (password, email, user, cb) => {
     verifyReset.create({
-      action: 'email',
+      action: 'emailChange',
       value: { password, email },
     }, { user }, cb);
   };
 
-  this.authenticate = function authenticate(email, password, cb) {
+  this.authenticate = (email, password, cb) => {
     let cbCalled = false;
 
     app.authenticate({ type: 'local', email, password })
@@ -82,6 +96,14 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
         }
       });
   };
+  
+  // backwards compatability
+  this.unique = this.checkUnique;
+  this.verifySignUp = this.verifySignupLong;
+  this.sendResetPassword = this.sendResetPwd;
+  this.saveResetPassword = this.resetPwdLong;
+  this.changePassword = this.passwordChange;
+  this.changeEmail = this.emailChange;
 }
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {

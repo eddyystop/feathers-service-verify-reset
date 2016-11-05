@@ -26,25 +26,25 @@ const verifyResetServiceFake = function () {
   return function verifyReset() { // 'function' needed as we use 'this'
     const app = this;
     const path = '/verifyReset/:action/:value';
-
+    
     app.use(path, {
       create(data, params1, cb) {
         spyData = data;
         spyParams = params1;
-
-        return data.action === 'unique' ? new Promise(resolve => resolve()) : cb();
+        
+        return Promise.resolve();
       },
     });
-
+    
     app.authenticate = (email, password) => {
       spyAuthenticateEmail = email;
       spyAuthenticatePassword = password;
-
+      
       const index = usersDb[0].email === email ? 0 : 1;
-
-      return new Promise((resolve) => resolve({ data: usersDb[index] }));
+      
+      return Promise.resolve({ data: usersDb[index] });
     };
-
+    
     app.log = () => {};
   };
 };
@@ -64,7 +64,7 @@ describe('wrapper - instantiate', () => {
     ['unique', 'resendVerify', 'verifySignUp', 'sendResetPassword', 'saveResetPassword',
       'changePassword', 'changeEmail',
     ].forEach(method => {
-      assert.isFunction(verifyReset[method]);
+      assert.isFunction(verifyReset[method], `${method} is not a function`);
     });
   });
 });
@@ -83,7 +83,7 @@ describe('wrapper - methods', () => {
     verifyReset.unique({ username: 'john a' }, null, true, () => {
       assert.deepEqual(spyParams, {});
       assert.deepEqual(spyData, {
-        action: 'unique', value: { username: 'john a' }, ownId: null, meta: { noErrMsg: true },
+        action: 'checkUnique', value: { username: 'john a' }, ownId: null, meta: { noErrMsg: true },
       });
     });
   });
@@ -91,28 +91,28 @@ describe('wrapper - methods', () => {
   it('resendVerify', () => {
     verifyReset.resendVerify('a@a.com', () => {
       assert.deepEqual(spyParams, {});
-      assert.deepEqual(spyData, { action: 'resend', value: 'a@a.com' });
+      assert.deepEqual(spyData, { action: 'resendVerify', value: 'a@a.com' });
     });
   });
 
   it('verifySignUp', () => {
     verifyReset.verifySignUp('000', () => {
       assert.deepEqual(spyParams, {});
-      assert.deepEqual(spyData, { action: 'verify', value: '000' });
+      assert.deepEqual(spyData, { action: 'verifySignupLong', value: '000' });
     });
   });
 
   it('sendResetPassword', () => {
     verifyReset.sendResetPassword('a@a.com', () => {
       assert.deepEqual(spyParams, {});
-      assert.deepEqual(spyData, { action: 'forgot', value: 'a@a.com' });
+      assert.deepEqual(spyData, { action: 'sendResetPwd', value: 'a@a.com' });
     });
   });
 
   it('saveResetPassword', () => {
     verifyReset.saveResetPassword('000', '12345678', () => {
       assert.deepEqual(spyParams, {});
-      assert.deepEqual(spyData, { action: 'reset', value: { token: '000', password: '12345678' } });
+      assert.deepEqual(spyData, { action: 'resetPwdLong', value: { token: '000', password: '12345678' } });
     });
   });
 
@@ -122,7 +122,7 @@ describe('wrapper - methods', () => {
     verifyReset.changePassword('12345678', 'password', user, () => {
       assert.deepEqual(spyParams, { user });
       assert.deepEqual(spyData, {
-        action: 'password', value: { oldPassword: '12345678', password: 'password' },
+        action: 'passwordChange', value: { oldPassword: '12345678', password: 'password' },
       });
     });
   });
@@ -133,7 +133,7 @@ describe('wrapper - methods', () => {
     verifyReset.changeEmail('12345678', 'b@b.com', user, () => {
       assert.deepEqual(spyParams, { user });
       assert.deepEqual(spyData, {
-        action: 'email', value: { password: '12345678', email: 'b@b.com' },
+        action: 'emailChange', value: { password: '12345678', email: 'b@b.com' },
       });
     });
   });

@@ -22,10 +22,11 @@ const usersDb = [
 // Tests
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    describe(`verifyReset::reset ${pagination} ${idType}`, () => {
+    describe(`resetPwdWithLongToken ${pagination} ${idType}`, function () {
+      this.timeout(5000);
       const ifNonPaginated = pagination === 'non-paginated';
 
-      describe('standard', () => {
+      describe('basic', () => {
         var db;
         var app;
         var users;
@@ -52,7 +53,28 @@ const usersDb = [
 
               assert.strictEqual(db[i].isVerified, true, 'isVerified not true');
               assert.strictEqual(db[i].resetToken, null, 'resetToken not null');
+              assert.strictEqual(db[i].resetShortToken, null, 'resetShortToken not null');
               assert.strictEqual(db[i].resetExpires, null, 'resetExpires not null');
+
+              assert.isString(db[i].password, 'password not a string');
+              assert.equal(db[i].password.length, 60, 'password wrong length');
+
+              done();
+            });
+        });
+
+        it('user is sanitized', (done) => {
+          const resetToken = '000';
+          const i = 0;
+
+          verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
+            (err, user) => {
+              assert.strictEqual(err, null, 'err code set');
+
+              assert.strictEqual(user.isVerified, true, 'isVerified not true');
+              assert.strictEqual(user.resetToken, undefined, 'resetToken not undefined');
+              assert.strictEqual(user.resetShortToken, undefined, 'resetShortToken not undefined');
+              assert.strictEqual(user.resetExpires, undefined, 'resetExpires not undefined');
 
               assert.isString(db[i].password, 'password not a string');
               assert.equal(db[i].password.length, 60, 'password wrong length');
@@ -65,8 +87,8 @@ const usersDb = [
           const resetToken = '222';
           verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
             (err, user) => {
-              assert.equal(err.message, 'Email is not verified.');
-              assert.deepEqual(err.errors, { $className: 'notVerified' });
+              assert.isString(err.message);
+              assert.isNotFalse(err.message);
 
               done();
             });
@@ -76,8 +98,8 @@ const usersDb = [
           const resetToken = '111';
           verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
             (err, user) => {
-              assert.equal(err.message, 'Reset token has expired.');
-              assert.deepEqual(err.errors, { $className: 'expired' });
+              assert.isString(err.message);
+              assert.isNotFalse(err.message);
 
               done();
             });
@@ -87,43 +109,8 @@ const usersDb = [
           const resetToken = '999';
           verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
             (err, user) => {
-              assert.equal(err.message, 'Reset token not found.');
-              assert.deepEqual(err.errors, { $className: 'notFound' });
-
-              done();
-            });
-        });
-      });
-
-      describe('user is sanitized', () => {
-        var db;
-        var app;
-        var users;
-        var verifyReset;
-        const password = '123456';
-
-        beforeEach(() => {
-          db = clone(usersDb);
-          app = feathersStubs.app();
-          users = feathersStubs.users(app, db, ifNonPaginated, idType);
-          verifyResetService().call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
-        });
-
-        it('verifies valid token', (done) => {
-          const resetToken = '000';
-          const i = 0;
-
-          verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
-            (err, user) => {
-              assert.strictEqual(err, null, 'err code set');
-
-              assert.strictEqual(user.isVerified, true, 'isVerified not true');
-              assert.strictEqual(user.resetToken, undefined, 'resetToken not undefined');
-              assert.strictEqual(user.resetExpires, undefined, 'resetExpires not undefined');
-
-              assert.isString(db[i].password, 'password not a string');
-              assert.equal(db[i].password.length, 60, 'password wrong length');
+              assert.isString(err.message);
+              assert.isNotFalse(err.message);
 
               done();
             });
@@ -147,30 +134,38 @@ const usersDb = [
           verifyResetService({ emailer: spyEmailer.callWithCb, testMode: true }).call(app);
           verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
         });
-
+  
         it('verifies valid token', (done) => {
           const resetToken = '000';
           const i = 0;
-
-          verifyReset.create({ action: 'reset', value: { token: resetToken, password } }, {},
+    
+          verifyReset.create({
+              action: 'reset',
+              value: { token: resetToken, password } },
+            {},
             (err, user) => {
               assert.strictEqual(err, null, 'err code set');
-
+        
               assert.strictEqual(user.isVerified, true, 'user.isVerified not true');
-
+        
               assert.strictEqual(db[i].isVerified, true, 'isVerified not true');
               assert.strictEqual(db[i].resetToken, null, 'resetToken not null');
               assert.strictEqual(db[i].resetExpires, null, 'resetExpires not null');
-
+        
               const hash = db[i].password;
               assert.isString(hash, 'password not a string');
               assert.equal(hash.length, 60, 'password wrong length');
-
+        
               assert.deepEqual(spyEmailer.result(), [{
-                args: ['reset', Object.assign({}, sanitizeUserForEmail(db[i])), {}],
+                args: [
+                  'reset',
+                  Object.assign({}, sanitizeUserForEmail(db[i])),
+                  {},
+                  ''
+                ],
                 result: [null],
               }]);
-
+        
               done();
             });
         });
@@ -181,7 +176,7 @@ const usersDb = [
 
 // Helpers
 
-function emailer(action, user, params, cb) {
+function emailer(action, user, notifierOptions, newEmail, cb) {
   cb(null);
 }
 

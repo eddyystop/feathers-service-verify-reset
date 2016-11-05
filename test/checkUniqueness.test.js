@@ -19,7 +19,7 @@ const usersDb = [
 // Tests
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    describe(`verifyReset::unique ${pagination} ${idType}`, () => {
+    describe(`checkUniqueness ${pagination} ${idType}`, () => {
       const ifNonPaginated = pagination === 'non-paginated';
 
       describe('standard', () => {
