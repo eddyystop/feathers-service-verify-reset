@@ -19,7 +19,7 @@ const usersDb = [
 // Tests
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    describe(`verifyReset::unique ${pagination} ${idType}`, () => {
+    describe(`checkUniqueness ${pagination} ${idType}`, () => {
       const ifNonPaginated = pagination === 'non-paginated';
 
       describe('standard', () => {
@@ -33,7 +33,7 @@ const usersDb = [
           app = feathersStubs.app();
           users = feathersStubs.users(app, db, ifNonPaginated, idType);
           verifyResetService().call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('returns a promise', () => {

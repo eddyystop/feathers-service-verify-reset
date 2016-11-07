@@ -18,7 +18,7 @@ const usersDb = [
   { _id: 'b', email: 'b', plainPassword: 'bb', plainNewPassword: 'yy', isVerified: true },
 ];
 
-describe('verifyReset::password - setup', () => {
+describe('passwordChange - setup', () => {
   it('encode passwords', function (done) {
     this.timeout(9000);
 
@@ -61,7 +61,7 @@ describe('verifyReset::password - setup', () => {
 
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    describe(`verifyReset::password ${pagination} ${idType}`, () => {
+    describe(`passwordChange ${pagination} ${idType}`, () => {
       const ifNonPaginated = pagination === 'non-paginated';
 
       describe('standard', () => {
@@ -75,7 +75,7 @@ describe('verifyReset::password - setup', () => {
           app = feathersStubs.app();
           users = feathersStubs.users(app, db, ifNonPaginated, idType);
           verifyResetService().call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('updates verified user', function (done) {
@@ -129,8 +129,8 @@ describe('verifyReset::password - setup', () => {
             action: 'password',
             value: { oldPassword: 'fdfgfghghj', password: user.plainNewPassword },
           }, { user }, (err, user) => {
-            assert.equal(err.message, 'Current password is incorrect.');
-            assert.deepEqual(err.errors, { oldPassword: 'Current password is incorrect.' });
+            assert.isString(err.message);
+            assert.isNotFalse(err.message);
 
             done();
           });
@@ -151,7 +151,7 @@ describe('verifyReset::password - setup', () => {
           spyEmailer = new SpyOn(emailer);
 
           verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('updates verified user', function (done) {
@@ -160,22 +160,29 @@ describe('verifyReset::password - setup', () => {
           const user = clone(db[i]);
           const paramsUser = clone(user);
           delete paramsUser.password;
-
-
+  
+  
           verifyReset.create({
-            action: 'password',
-            value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
-          }, { user: paramsUser }, (err, user) => {
-            assert.strictEqual(err, null, 'err code set');
-
-            assert.strictEqual(user.isVerified, true, 'isVerified not true');
-
-            assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
-
-            assert.deepEqual(spyEmailer.result(), [
-              { args: ['password', sanitizeUserForEmail(db[i]), { user: paramsUser }],
-                result: [null] },
-            ]);
+              action: 'password',
+              value: { oldPassword: user.plainPassword, password: user.plainNewPassword },
+            },
+            { user: paramsUser },
+            (err, user) => {
+              assert.strictEqual(err, null, 'err code set');
+      
+              assert.strictEqual(user.isVerified, true, 'isVerified not true');
+      
+              assert.isOk(bcrypt.compareSync(db[i].plainNewPassword, db[i].password), `[${i}]`);
+  
+              assert.deepEqual(spyEmailer.result(), [
+                { args: [
+                  'passwordChange',
+                  sanitizeUserForEmail(db[i]),
+                  {},
+                  ''
+                ],
+                  result: [null] },
+              ]);
 
             done();
           });
@@ -203,7 +210,7 @@ function encrypt(app, password) {
     .catch(err => console.log('encrypt', err)); // eslint-disable-line no-console
 }
 
-function emailer(action, user, params, cb) {
+function emailer(action, user, notifierOptions, newEmail, cb) {
   cb(null);
 }
 

@@ -18,7 +18,7 @@ const usersDb = [
   { _id: 'b', email: 'b', plainPassword: 'bb', isVerified: true },
 ];
 
-describe('verifyReset::email - setup', () => {
+describe('emailChange - setup', () => {
   it('encode passwords', function (done) {
     this.timeout(9000);
 
@@ -50,7 +50,7 @@ describe('verifyReset::email - setup', () => {
 
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    describe(`verifyReset::email ${pagination} ${idType}`, () => {
+    describe(`emailChange ${pagination} ${idType}`, () => {
       const ifNonPaginated = pagination === 'non-paginated';
 
       describe('standard', () => {
@@ -64,7 +64,7 @@ describe('verifyReset::email - setup', () => {
           app = feathersStubs.app();
           users = feathersStubs.users(app, db, ifNonPaginated, idType);
           verifyResetService().call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('updates verified user', function (done) {
@@ -110,8 +110,8 @@ describe('verifyReset::email - setup', () => {
           verifyReset.create({
             action: 'email', value: { password: 'ghghghg', email },
           }, { user }, (err, user) => {
-            assert.equal(err.message, 'Password is incorrect.');
-            assert.deepEqual(err.errors, { password: 'Password is incorrect.' });
+            assert.isString(err.message);
+            assert.isNotFalse(err.message);
 
             done();
           });
@@ -132,7 +132,7 @@ describe('verifyReset::email - setup', () => {
           spyEmailer = new SpyOn(emailer);
 
           verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('updates verified user', function (done) {
@@ -143,27 +143,32 @@ describe('verifyReset::email - setup', () => {
           const email = 'b@b';
           const emailUser = clone(db[i]);
           emailUser.newEmail = email;
-
-          verifyReset.create({
-            action: 'email', value: { password: paramsUser.plainPassword, email },
-          }, { user: paramsUser }, (err, user) => {
-            assert.strictEqual(err, null, 'err code set');
-            assert.strictEqual(user.isVerified, true, 'isVerified not true');
-            assert.equal(db[i].email, email);
-
-            assert.deepEqual(spyEmailer.result(), [
-              {
-                args: [
-                  'email',
-                  Object.assign(sanitizeUserForEmail(db[i]), { email: oldEmail, newEmail: email }),
-                  { user: paramsUser }, // call does not change this
-                ],
-                result: [null],
-              },
-            ]);
-
-            done();
-          });
+  
+          verifyReset.create(
+            { action: 'email', value: { password: paramsUser.plainPassword, email } },
+            { user: paramsUser },
+            (err, user) => {
+              assert.strictEqual(err, null, 'err code set');
+              assert.strictEqual(user.isVerified, true, 'isVerified not true');
+              assert.equal(db[i].email, email);
+              
+              assert.deepEqual(spyEmailer.result(), [
+                {
+                  args: [
+                    'emailChange',
+                    Object.assign(
+                      sanitizeUserForEmail(db[i]),
+                      { email: oldEmail, newEmail: email }
+                    ),
+                    {},
+                    email,
+                  ],
+                  result: [null],
+                },
+              ]);
+      
+              done();
+            });
         });
       });
     });
@@ -188,7 +193,7 @@ function encrypt(app, password) {
     .catch(err => console.log('encrypt', err)); // eslint-disable-line no-console
 }
 
-function emailer(action, user, params, cb) {
+function emailer(action, user, notifierOptions, newEmail, cb) {
   cb(null);
 }
 

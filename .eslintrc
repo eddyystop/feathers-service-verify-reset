@@ -12,17 +12,22 @@
   ],
   "rules": { // override airbnb rules, add other rules
     "arrow-parens": 0, // Expected parentheses around arrow function argument having a body with curly braces
+    "comma-dangle": 0,
     "func-names": 0,
     "import/no-extraneous-dependencies": 0,
     "import/no-named-as-default": 0,
     "import/no-unresolved": ["error", { "ignore": ["^redux-form-material-ui"] }], // why complaints?
+    "indent": 0, // editor issues
     "linebreak-style": 0,
     "max-statements": ["warn", 100],
     "no-global-assign": 0, //
+    "no-trailing-spaces": 0, // editor issues
     "no-unsafe-negation": 0, //
     "no-use-before-define": ["off", {
       "functions": false, "classes": false
     }],
+    "no-var": 0, // latest V8 doesn't support let
+    "object-property-newline": 0,
     "react/jsx-filename-extension": 0,
     "react/jsx-first-prop-new-line": 0,
     "jsdoc/check-param-names": 2,

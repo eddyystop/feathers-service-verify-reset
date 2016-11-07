@@ -19,6 +19,10 @@ const resendEmailEl = document.getElementById('resend-email');
 
 const verifyEl = document.getElementById('verify');
 
+document.getElementById('verify-user-short').addEventListener('click', verifyUserShort);
+const verifyShortEl = document.getElementById('verify-short');
+const verifyEmailEl = document.getElementById('verify-email');
+
 document.getElementById('signin-user').addEventListener('click', signIn);
 const emailSignInEl = document.getElementById('email-signin');
 const passwordSignInEl = document.getElementById('password-signin');
@@ -31,19 +35,20 @@ document.getElementById('reset-pwd').addEventListener('click', sendResetPwd);
 const resetEmailEl = document.getElementById('reset-email');
 
 // verified sign up panel
-const verifySignupEl = document.getElementById('verify-signup');
+const verifySignupLongEl = document.getElementById('verify-signup');
 document.getElementById('sign-in').addEventListener('click', controlPanel);
 
 // reset password panel
-const resetPasswordEl = document.getElementById('reset-password');
+const resetPwdLongEl = document.getElementById('reset-password');
 const passwordResetEl = document.getElementById('password-reset');
+const resetTokenEl = document.getElementById('reset-token');
 document.getElementById('do-reset').addEventListener('click', saveResetPwd);
 
 // display utility
-function displayActiveDom(ifControlPanel, ifVerifySignup, ifResetPassword) {
+function displayActiveDom(ifControlPanel, ifverifySignupLong, ifresetPwdLong) {
   controlPanelEl.style.display = ifControlPanel ? 'block' : 'none';
-  verifySignupEl.style.display = ifVerifySignup ? 'block' : 'none';
-  resetPasswordEl.style.display = ifResetPassword ? 'block' : 'none';
+  verifySignupLongEl.style.display = ifverifySignupLong ? 'block' : 'none';
+  resetPwdLongEl.style.display = ifresetPwdLong ? 'block' : 'none';
 }
 
 /*
@@ -66,11 +71,11 @@ console.log('router', leader, provider, action, slug);
 switch (action) {
   case 'verify':
     console.log(`--- feathers provider: ${apiType}, page mode: verify sign up.`);
-    verifySignUp(slug);
+    verifySignupLong(slug);
     break;
   case 'forgot':
     console.log(`--- feathers provider: ${apiType}, page mode: reset password.`);
-    resetPassword(slug);
+    resetPwdLong(slug);
     break;
   default:
     console.log(`--- feathers provider: ${apiType}, page mode: control panel.`);
@@ -84,6 +89,7 @@ switch (action) {
 function controlPanel() {
   displayActiveDom(true, false, false);
 }
+
 
 function addUser() {
   console.log('--- addUser');
@@ -100,7 +106,7 @@ function addUser() {
   }
 
   // We are not checking that the email is unique.
-  // You could do verifyReset.unique({ email }).then(() => unique).catch(errs => what's not unique)
+  // Could do verifyReset.checkUnique({ email }).then(() => unique).catch(errs => what's not unique)
   users.create(user, (err, user1) => {
     if (err) {
       errorHandler(err);
@@ -108,13 +114,32 @@ function addUser() {
     }
 
     console.log('user added', user1);
-
     verifyEl.href = `http://localhost:3030/${apiType}/verify/${user1.verifyToken}`;
     verifyEl.text = `http://localhost:3030/${apiType}/verify/${user1.verifyToken}`;
+    verifyShortEl.value = user1.verifyShortToken;
+    verifyEmailEl.value = user1.email;
     resendEmailEl.value = user1.email;
     emailSignInEl.value = user1.email;
     passwordSignInEl.value = passwordEl.value;
     resetEmailEl.value = user1.email;
+  });
+}
+
+function verifyUserShort() {
+  const token = verifyShortEl.value;
+  const email = verifyEmailEl.value;
+  console.log('--- SMS verify:', token, email);
+  if (!token || !email) {
+    console.log('ERROR: enter token and email');
+    return;
+  }
+  verifyReset.verifySignupShort(token, { email }, (err, user) => {
+    console.log('SMS verify err', err);
+    if (err) {
+      errorHandler(err);
+      return controlPanel();
+    }
+    console.log('SMS verification', user);
   });
 }
 
@@ -127,7 +152,8 @@ function resendVerify() {
     return;
   }
 
-  verifyReset.resendVerify(email, (err, user) => {
+  verifyReset.resendVerifySignup(email, { transport: 'email', route: apiType }, (err, user) => {
+    console.log('client resendVerify err', err);
     if (err) {
       errorHandler(err);
       return controlPanel();
@@ -190,7 +216,7 @@ function sendResetPwd() {
     return;
   }
 
-  verifyReset.sendResetPassword(email, (err, user) => {
+  verifyReset.sendResetPwd(email, { transport: 'email', route: apiType }, (err, user) => {
     if (err) {
       errorHandler(err);
       return controlPanel();
@@ -204,10 +230,10 @@ function sendResetPwd() {
  Verify Sign Up
  */
 
-function verifySignUp(slug1) {
+function verifySignupLong(slug1) {
   displayActiveDom(true, false, false);
 
-  verifyReset.verifySignUp(slug1, (err) => {
+  verifyReset.verifySignupLong(slug1, (err) => {
     if (err) {
       errorHandler(err);
       return controlPanel();
@@ -221,21 +247,22 @@ function verifySignUp(slug1) {
  Reset Password
  */
 
-function resetPassword() {
-  console.log('--- resetPassword');
+function resetPwdLong() {
+  console.log('--- resetPwdLong');
   displayActiveDom(false, false, true);
+  resetTokenEl.value = slug;
 }
 
 function saveResetPwd() {
   const password = passwordResetEl.value;
-  console.log('--- saveResetPassword', password);
+  console.log('--- resetPwdLong', password);
 
   if (!password) {
     console.log('ERROR: enter password');
     return;
   }
 
-  verifyReset.saveResetPassword(slug, password, (err) => {
+  verifyReset.resetPwdLong(slug, password, (err) => {
     if (err) {
       errorHandler(err);
       return controlPanel();
