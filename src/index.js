@@ -361,7 +361,7 @@ var options = {
  *
  */
 module.exports.service = function (options1 = {}) {
-  debug(`service configured.`);
+  debug('service configured.');
 
   options = Object.assign(options, options1,
     options1.emailer ? { userNotifier: options1.emailer } : {});
@@ -369,7 +369,7 @@ module.exports.service = function (options1 = {}) {
   return function verifyReset() { // 'function' needed as we use 'this'
     debug('service initialized');
     const app = this;
-    const path = '/verifyReset';
+    const path = 'verifyReset';
     var users;
     var params;
 
@@ -415,7 +415,9 @@ module.exports.service = function (options1 = {}) {
             promise = resetPwdWithLongToken(data.value.token, data.value.password);
             break;
           case 'resetPwdShort':
-            promise = resetPwdWithShortToken(data.value.token, data.value.user, data.value.password);
+            promise = resetPwdWithShortToken(
+              data.value.token, data.value.user, data.value.password
+            );
             break;
           case 'password': // backwards compatible, fall through
           case 'passwordChange':
@@ -433,9 +435,9 @@ module.exports.service = function (options1 = {}) {
         if (cb) {
           // Feathers cannot return an error to the client if we use process.nextTick(cb, err)
           promise
-            .then(data => {
+            .then(data1 => {
               callbackCalled = true;
-              cb(null, data);
+              cb(null, data1);
             })
             .catch(err => {
               if (!callbackCalled) { // don't call cb should cb(null, data) throw
@@ -495,14 +497,14 @@ module.exports.service = function (options1 = {}) {
   
           return emailOrToken;
         })
-        .then(query => {
-          return Promise.all([
+        .then(query =>
+          Promise.all([
             users.find({ query })
               .then(data => getUserData(data, ['isNotVerified'])),
             getLongToken(options.longTokenLen),
             getShortToken(options.shortTokenLen, options.shortTokenDigits)
           ])
-        })
+        )
         .then(([user, longToken, shortToken]) =>
           patchUser(user, {
             isVerified: false,
@@ -556,8 +558,8 @@ module.exports.service = function (options1 = {}) {
             verifyShortToken: null,
             verifyExpires: null,
           })
-            .then(user => userNotifier('verifySignup', user))
-            .then(user => sanitizeUserForClient(user));
+            .then(user1 => userNotifier('verifySignup', user1))
+            .then(user1 => sanitizeUserForClient(user1));
         });
     }
 
@@ -575,13 +577,12 @@ module.exports.service = function (options1 = {}) {
             getShortToken(options.shortTokenLen, options.shortTokenDigits)
           ]);
         })
-        .then(([user, longToken, shortToken]) => {
-            return patchUser(user, {
-              resetExpires: Date.now() + options.resetDelay,
-              resetToken: longToken,
-              resetShortToken: shortToken,
-            })
-          }
+        .then(([user, longToken, shortToken]) =>
+          patchUser(user, {
+            resetExpires: Date.now() + options.resetDelay,
+            resetToken: longToken,
+            resetShortToken: shortToken,
+          })
         )
         .then(user => userNotifier('sendResetPwd', user, notifierOptions))
         .then(user => sanitizeUserForClient(user));
@@ -631,8 +632,8 @@ module.exports.service = function (options1 = {}) {
             resetShortToken: null,
             resetExpires: null,
           })
-            .then(user => userNotifier('resetPwd', user))
-            .then(user => sanitizeUserForClient(user));
+            .then(user1 => userNotifier('resetPwd', user1))
+            .then(user1 => sanitizeUserForClient(user1));
         });
     }
 
@@ -644,7 +645,7 @@ module.exports.service = function (options1 = {}) {
           ensureValuesAreStrings(oldPassword, password);
 
           return users.find({ query: { email: user.email } })
-            .then(data => (Array.isArray(data) ? data[0] : data.data[0]))
+            .then(data => (Array.isArray(data) ? data[0] : data.data[0]));
         })
         .then(user1 => Promise.all([
           user1,
@@ -673,7 +674,7 @@ module.exports.service = function (options1 = {}) {
           ensureValuesAreStrings(password, email);
 
           return users.find({ query: { [idType]: user[idType] } })
-            .then(data => (Array.isArray(data) ? data[0] : data.data[0]))
+            .then(data => (Array.isArray(data) ? data[0] : data.data[0]));
         })
 
         .then(user1 => Promise.all([
@@ -802,7 +803,7 @@ function getShortToken(len, ifDigits) {
       str = str.substr(0, len);
 
       if (str.match(/^[0-9]+$/)) { // tests will fail on all digits
-        str = 'q' + str.substr(1); // shhhh, secret.
+        str = `q${str.substr(1)}`; // shhhh, secret.
       }
 
       return str;

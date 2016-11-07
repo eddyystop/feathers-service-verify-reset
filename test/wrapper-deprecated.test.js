@@ -25,7 +25,7 @@ var spyAuthenticatePassword;
 const verifyResetServiceFake = function () {
   return function verifyReset() { // 'function' needed as we use 'this'
     const app = this;
-    const path = '/verifyReset/:action/:value';
+    const path = 'verifyReset';
     
     app.use(path, {
       create(data, params1, cb) {

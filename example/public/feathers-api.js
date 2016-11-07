@@ -114,7 +114,6 @@ function addUser() {
     }
 
     console.log('user added', user1);
-  
     verifyEl.href = `http://localhost:3030/${apiType}/verify/${user1.verifyToken}`;
     verifyEl.text = `http://localhost:3030/${apiType}/verify/${user1.verifyToken}`;
     verifyShortEl.value = user1.verifyShortToken;
@@ -130,20 +129,16 @@ function verifyUserShort() {
   const token = verifyShortEl.value;
   const email = verifyEmailEl.value;
   console.log('--- SMS verify:', token, email);
-  
-  
   if (!token || !email) {
     console.log('ERROR: enter token and email');
     return;
   }
-  
   verifyReset.verifySignupShort(token, { email }, (err, user) => {
     console.log('SMS verify err', err);
     if (err) {
       errorHandler(err);
       return controlPanel();
     }
-    
     console.log('SMS verification', user);
   });
 }

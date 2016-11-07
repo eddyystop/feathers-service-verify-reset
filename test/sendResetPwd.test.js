@@ -36,7 +36,7 @@ const usersDb = [
           app = feathersStubs.app();
           users = feathersStubs.users(app, db, ifNonPaginated, idType);
           verifyResetService().call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('updates verified user', (done) => {
@@ -111,7 +111,7 @@ const usersDb = [
             done();
           })
           .catch(err => {
-            assign.fail(false, true, 'unexpected c atch');
+            assert.fail(false, true, 'unexpected c atch');
           });
         });
       });
@@ -131,7 +131,7 @@ const usersDb = [
             shortTokenLen: 9,
             shortTokenDigits: true,
           }).call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('updates verified user', (done) => {
@@ -170,7 +170,7 @@ const usersDb = [
             shortTokenLen: 9,
             shortTokenDigits: false,
           }).call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('updates verified user', (done) => {
@@ -213,7 +213,7 @@ const usersDb = [
             shortTokenDigits: true,
             userNotifier: spyEmailer.callWithCb,
           }).call(app);
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('is called', (done) => {
@@ -271,7 +271,7 @@ const usersDb = [
             shortTokenDigits: true,
             emailer: spyEmailer.callWithCb,
           }).call(app);
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
     
         it('is called', (done) => {

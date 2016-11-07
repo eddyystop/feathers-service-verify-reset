@@ -18,7 +18,7 @@ module.exports = function () { // 'function' needed as we use 'this'
 function userNotifier(type, user1, notifierOptions = {}, newEmail, cb) {
   const myBrand = 'Feathersjs';
   const myUrl = 'feathers.com';
-  var route;
+  var route; // eslint-disable-line no-var
 
   switch (type) {
     case 'resendVerifySignup':

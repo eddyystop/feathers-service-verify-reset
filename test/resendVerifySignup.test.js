@@ -38,7 +38,7 @@ const usersDb = [
             app = feathersStubs.app();
             users = feathersStubs.users(app, db, ifNonPaginated, idType);
             verifyResetService().call(app); // define and attach verifyReset service
-            verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+            verifyReset = app.service('verifyReset'); // get handle to verifyReset
           });
 
           it('verifyReset::create exists', () => {
@@ -112,7 +112,7 @@ const usersDb = [
               done();
             })
             .catch(err => {
-              assert.fail(trie, false, 'unexpected catch');
+              assert.fail(true, false, 'unexpected catch');
 
               done();
             });
@@ -161,7 +161,7 @@ const usersDb = [
           verifyResetService({
             longTokenLen: 10,
           }).call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('can change', (done) => {
@@ -199,7 +199,7 @@ const usersDb = [
             longTokenLen: 15, // need to reset this
             shortTokenLen: 8,
           }).call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('can change', (done) => {
@@ -238,7 +238,7 @@ const usersDb = [
             shortTokenLen: 9,
             shortTokenDigits: false,
           }).call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('can change', (done) => {
@@ -277,7 +277,7 @@ const usersDb = [
             shortTokenLen: 6,
             shortTokenDigits: false,
           }).call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('verifies when correct', (done) => {
@@ -350,7 +350,7 @@ const usersDb = [
             shortTokenDigits: true, // need to reset this
             userNotifier: spyEmailer.callWithCb
           }).call(app);
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
   
         it('is called', (done) => {
@@ -410,7 +410,7 @@ const usersDb = [
             shortTokenDigits: true, // need to reset this
             emailer: spyEmailer.callWithCb
           }).call(app);
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
     
         it('is called', (done) => {

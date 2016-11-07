@@ -75,7 +75,7 @@ describe('passwordChange - setup', () => {
           app = feathersStubs.app();
           users = feathersStubs.users(app, db, ifNonPaginated, idType);
           verifyResetService().call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('updates verified user', function (done) {
@@ -151,7 +151,7 @@ describe('passwordChange - setup', () => {
           spyEmailer = new SpyOn(emailer);
 
           verifyResetService({ emailer: spyEmailer.callWithCb }).call(app); // attach verifyReset
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('updates verified user', function (done) {

@@ -28,12 +28,11 @@ describe('randomBytes', () => {
 
         done();
       })
-      .catch(err => {
+      .catch(() => {
         assert.fail(true, false, 'unexpected catch');
 
         done();
       });
-
   });
 
   it('returns different values', (done) => {
@@ -48,7 +47,7 @@ describe('randomBytes', () => {
 
         done();
       })
-      .catch(err => {
+      .catch(() => {
         assert.fail(true, false, 'unexpected catch');
 
         done();

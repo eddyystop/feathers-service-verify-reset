@@ -36,8 +36,7 @@ describe('hook:addVerification', () => {
 
           done();
         })
-        .catch(err => {
-          console.log(err);
+        .catch(() => {
           assert.fail(true, false, 'unexpected error');
 
           done();
@@ -61,8 +60,7 @@ describe('hook:addVerification', () => {
 
           done();
         })
-        .catch(err => {
-          console.log(err);
+        .catch(() => {
           assert.fail(true, false, 'unexpected error');
 
           done();
@@ -72,7 +70,7 @@ describe('hook:addVerification', () => {
 
   describe('long token', () => {
     it('length option works', (done) => {
-      options = { longTokenLen: 10,  };
+      options = { longTokenLen: 10 };
       hooks.addVerification(options)(hookIn)
         .then(hook => {
           const user = hook.data;
@@ -86,8 +84,7 @@ describe('hook:addVerification', () => {
 
           done();
         })
-        .catch(err => {
-          console.log(err);
+        .catch(() => {
           assert.fail(true, false, 'unexpected error');
 
           done();
@@ -95,7 +92,7 @@ describe('hook:addVerification', () => {
     });
 
     it('old length option works', (done) => {
-      options = { len: 10,  };
+      options = { len: 10 };
       hooks.addVerification(options)(hookIn)
         .then(hook => {
           const user = hook.data;
@@ -109,8 +106,7 @@ describe('hook:addVerification', () => {
 
           done();
         })
-        .catch(err => {
-          console.log(err);
+        .catch(() => {
           assert.fail(true, false, 'unexpected error');
 
           done();
@@ -132,8 +128,7 @@ describe('hook:addVerification', () => {
 
           done();
         })
-        .catch(err => {
-          console.log(err);
+        .catch(() => {
           assert.fail(true, false, 'unexpected error');
 
           done();
@@ -148,13 +143,12 @@ describe('hook:addVerification', () => {
 
           assert.strictEqual(user.isVerified, false, 'isVerified not false');
           assert.equal(user.verifyShortToken.length, 6, 'verify short token wrong length');
-          assert.notMatch(user.verifyShortToken, /^[0-9]+$/)
+          assert.notMatch(user.verifyShortToken, /^[0-9]+$/);
           aboutEqualDateTime(user.verifyExpires, makeDateTime(options));
 
           done();
         })
-        .catch(err => {
-          console.log(err);
+        .catch(() => {
           assert.fail(true, false, 'unexpected error');
 
           done();
@@ -169,13 +163,12 @@ describe('hook:addVerification', () => {
 
           assert.strictEqual(user.isVerified, false, 'isVerified not false');
           assert.equal(user.verifyShortToken.length, 7, 'verify short token wrong length');
-          assert.match(user.verifyShortToken, /^[0-9]+$/)
+          assert.match(user.verifyShortToken, /^[0-9]+$/);
           aboutEqualDateTime(user.verifyExpires, makeDateTime(options));
 
           done();
         })
-        .catch(err => {
-          console.log(err);
+        .catch(() => {
           assert.fail(true, false, 'unexpected error');
 
           done();
@@ -190,13 +183,12 @@ describe('hook:addVerification', () => {
 
           assert.strictEqual(user.isVerified, false, 'isVerified not false');
           assert.equal(user.verifyShortToken.length, 9, 'verify short token wrong length');
-          assert.notMatch(user.verifyShortToken, /^[0-9]+$/)
+          assert.notMatch(user.verifyShortToken, /^[0-9]+$/);
           aboutEqualDateTime(user.verifyExpires, makeDateTime(options));
 
           done();
         })
-        .catch(err => {
-          console.log(err);
+        .catch(() => {
           assert.fail(true, false, 'unexpected error');
 
           done();

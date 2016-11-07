@@ -7,7 +7,7 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
     return new VerifyReset(app);
   }
 
-  const verifyReset = app.service('/verifyReset');
+  const verifyReset = app.service('verifyReset');
 
   this.checkUnique = (uniques, ownId, ifErrMsg, cb) => {
     verifyReset.create({
@@ -19,7 +19,6 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
   };
 
   this.resendVerifySignup = (emailOrToken, notifierOptions, cb) => {
-    console.log('client resendVerify', emailOrToken);
     verifyReset.create({
       action: 'resendVerifySignup',
       value: emailOrToken,

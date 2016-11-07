@@ -73,7 +73,6 @@ exports.after = {
 function userNotificationCreate(hook, next) {
   // Data from the UI may be used to determine the transport for notifying the user.
   const user = hook.result;
-  
   const slugForUrl = {
     socketio: 'socket',
     rest: 'rest',

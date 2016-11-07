@@ -38,7 +38,7 @@ const usersDb = [
           app = feathersStubs.app();
           users = feathersStubs.users(app, db, ifNonPaginated, idType);
           verifyResetService().call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('verifies valid token', (done) => {
@@ -132,7 +132,7 @@ const usersDb = [
           spyEmailer = new SpyOn(emailer);
 
           verifyResetService({ emailer: spyEmailer.callWithCb, testMode: true }).call(app);
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
   
         it('verifies valid token', (done) => {

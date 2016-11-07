@@ -1,7 +1,7 @@
 
 /* global assert, describe, it */
 /* eslint  no-shadow: 0, no-var: 0, one-var: 0, one-var-declaration-per-line: 0,
-no-unused-vars: 0 */
+no-unused-vars: 0, object-property-newline: 0 */
 
 const assert = require('chai').assert;
 const feathersStubs = require('./../test/helpers/feathersStubs');
@@ -37,9 +37,9 @@ const usersDb = [
           app = feathersStubs.app();
           users = feathersStubs.users(app, db, ifNonPaginated, idType);
           verifyResetService({
-            userPropsForShortToken: ['email', 'username']
+            userPropsForShortToken: ['email', 'username'],
           }).call(app); // define and attach verifyReset service
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
 
         it('verifies valid token', (done) => {
@@ -47,7 +47,7 @@ const usersDb = [
           const i = 0;
 
           verifyReset.create({ action: 'verifySignupShort', value: {
-            token: verifyShortToken, user: { email: db[i].email }
+            token: verifyShortToken, user: { email: db[i].email },
           } }, {}, (err, user) => {
             assert.strictEqual(err, null, 'err code set');
 
@@ -67,17 +67,17 @@ const usersDb = [
           const i = 0;
 
           verifyReset.create({ action: 'verifySignupShort', value: {
-            token: verifyShortToken, user: { username: db[i].username }
+            token: verifyShortToken, user: { username: db[i].username },
           } }, {}, (err, user) => {
-              assert.strictEqual(err, null, 'err code set');
+            assert.strictEqual(err, null, 'err code set');
 
-              assert.strictEqual(user.isVerified, true, 'isVerified not true');
-              assert.strictEqual(user.verifyToken, undefined, 'verifyToken not undefined');
-              assert.strictEqual(user.verifyShortToken, undefined, 'verifyShortToken not undefined');
-              assert.strictEqual(user.verifyExpires, undefined, 'verifyExpires not undefined');
+            assert.strictEqual(user.isVerified, true, 'isVerified not true');
+            assert.strictEqual(user.verifyToken, undefined, 'verifyToken not undefined');
+            assert.strictEqual(user.verifyShortToken, undefined, 'verifyShortToken not undefined');
+            assert.strictEqual(user.verifyExpires, undefined, 'verifyExpires not undefined');
 
-              done();
-            });
+            done();
+          });
         });
 
         it('handles multiple user ident', (done) => {
@@ -85,7 +85,7 @@ const usersDb = [
           const i = 0;
 
           verifyReset.create({ action: 'verifySignupShort', value: {
-            token: verifyShortToken, user: { email: db[i].email, username: db[i].username }
+            token: verifyShortToken, user: { email: db[i].email, username: db[i].username },
           } }, {}, (err, user) => {
             assert.strictEqual(err, null, 'err code set');
 
@@ -103,7 +103,7 @@ const usersDb = [
           const i = 0;
 
           verifyReset.create({ action: 'verifySignupShort', value: {
-            token: verifyShortToken, user: {}
+            token: verifyShortToken, user: {},
           } }, {}, (err, user) => {
             assert.isString(err.message);
             assert.isNotFalse(err.message);
@@ -117,7 +117,7 @@ const usersDb = [
           const i = 0;
 
           verifyReset.create({ action: 'verifySignupShort', value: {
-            token: verifyShortToken, user: { email: db[i].email, verifyShortToken }
+            token: verifyShortToken, user: { email: db[i].email, verifyShortToken },
           } }, {}, (err, user) => {
             assert.isString(err.message);
             assert.isNotFalse(err.message);
@@ -145,7 +145,7 @@ const usersDb = [
           const i = 2;
 
           verifyReset.create({ action: 'verifySignupShort', value: {
-            token: verifyShortToken, user: { username: db[i].username }, }
+            token: verifyShortToken, user: { username: db[i].username } },
           }, {}, (err, user) => {
             assert.isString(err.message);
             assert.isNotFalse(err.message);
@@ -159,20 +159,23 @@ const usersDb = [
           verifyReset.create({ action: 'verifySignupShort', value: {
             token: verifyShortToken, user: { email: '999' },
           } }, {}, (err, user) => {
-              assert.isString(err.message);
-              assert.isNotFalse(err.message);
+            assert.isString(err.message);
+            assert.isNotFalse(err.message);
 
-              done();
-            });
+            done();
+          });
         });
 
         it('error incorrect token', (done) => {
           const verifyShortToken = '999';
           const i = 0;
 
-          verifyReset.create({ action: 'verifySignupShort', value: {
-            token: verifyShortToken, user: { email: db[i].email },
-          } }, {}, (err, user) => {
+          verifyReset.create({
+            action: 'verifySignupShort',
+            value: { token: verifyShortToken, user: { email: db[i].email } }
+          },
+            {},
+            (err, user) => {
             assert.isString(err.message);
             assert.isNotFalse(err.message);
 
@@ -198,39 +201,39 @@ const usersDb = [
           verifyResetService({
             // maybe reset userPropsForShortToken
             emailer: spyEmailer.callWithCb,
-            testMode: true
+            testMode: true,
           }).call(app);
-          verifyReset = app.service('/verifyReset/:action/:value'); // get handle to verifyReset
+          verifyReset = app.service('verifyReset'); // get handle to verifyReset
         });
-  
+        
         it('verifies valid token', (done) => {
           const verifyShortToken = '00099';
           const i = 0;
-    
+          
           verifyReset.create({
-              action: 'verifySignupShort',
-              value: { token: verifyShortToken, user: { email: db[i].email } }
-            },
+            action: 'verifySignupShort',
+            value: { token: verifyShortToken, user: { email: db[i].email } },
+          },
             {},
             (err, user) => {
               assert.strictEqual(err, null, 'err code set');
-        
+              
               assert.strictEqual(user.isVerified, true, 'user.isVerified not true');
-        
+              
               assert.strictEqual(db[i].isVerified, true, 'isVerified not true');
               assert.strictEqual(db[i].verifyToken, null, 'verifyToken not null');
               assert.strictEqual(db[i].verifyExpires, null, 'verifyExpires not null');
-        
+              
               assert.deepEqual(spyEmailer.result(), [{
                 args: [
                   'verifySignup',
                   Object.assign({}, sanitizeUserForEmail(db[i])),
                   {},
-                  ''
+                  '',
                 ],
                 result: [null],
               }]);
-        
+              
               done();
             });
         });

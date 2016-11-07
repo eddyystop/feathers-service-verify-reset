@@ -25,7 +25,7 @@ var spyAuthenticatePassword;
 const verifyResetServiceFake = function () {
   return function verifyReset() { // 'function' needed as we use 'this'
     const app = this;
-    const path = '/verifyReset/:action/:value';
+    const path = 'verifyReset';
 
     app.use(path, {
       create(data, params1, cb) {
@@ -107,7 +107,7 @@ describe('wrapper - methods', () => {
       assert.deepEqual(spyParams, {});
       assert.deepEqual(spyData, {
         action: 'verifySignupShort',
-        value: { token: '000', user: { email: 'a@a.com' } }
+        value: { token: '000', user: { email: 'a@a.com' } },
       });
     });
   });
@@ -131,7 +131,7 @@ describe('wrapper - methods', () => {
       assert.deepEqual(spyParams, {});
       assert.deepEqual(spyData, {
         action: 'resetPwdLong',
-        value: { token: '000', user: { email: 'a@a.com' }, password: '12345678' }
+        value: { token: '000', user: { email: 'a@a.com' }, password: '12345678' },
       });
     });
   });
