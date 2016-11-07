@@ -56,13 +56,13 @@ Leaving it a pure API server, lets it be used with both native and browser clien
 
 ## Contents
 - [Code example](#codeExample)
-- [The service](#service)
+- [The Service](#service)
 - [Client](#client)
     - [Using Feathers's method calls](#methods)
-    - [Provided service wrappers(#wrappers)
+    - [Provided service wrappers](#wrappers)
     - [HTTP fetch](#fetch)
-    - [React's redux](#redux)]
-        - [Dispatching services](#reduxservices)
+    - [React's redux](#redux)
+        - [Dispatching services](#reduxServices)
         - [Dispatching authentication](#reduxAuth)
     - [Vue 2.0 {to do}](#vue)
 - [Hooks](#hooks)
@@ -72,9 +72,9 @@ Leaving it a pure API server, lets it be used with both native and browser clien
 - [Configurable](#configurable)
 - [Migration from 0.8.0](#migration)
 - [Motivation](#motivation)
-- [Install package](#package)
-- [Install and run example](#example)
-- [Tests](tests)
+- [Install package](#install)
+- [Install and run example](#exampleRun)
+- [Tests](#tests)
     
 
 ## <a name="codeExample"> Code Example
@@ -82,7 +82,7 @@ Leaving it a pure API server, lets it be used with both native and browser clien
 The folder `example/` presents a full featured server/browser implementation
 whose UI lets you exercise the API.
 
-## <a name="service"> The service
+## <a name="service"> The Service
 
 ```javascript
 app.configure(authentication)
@@ -139,7 +139,7 @@ The service may be called on the client using
 - (A4) React's Redux
 - (A5) Vue 2.0 **(docs todo)**
 
-##### <a name="methods"> Using Feathers' method calls
+### <a name="methods"> Using Feathers' method calls
 Method calls return a Promise unless a callback is provided.
 
 ```javascript
@@ -229,7 +229,7 @@ app.authenticate({ type: 'local', email, password })
   });
 ````
 
-##### <a name="wrappers"> Provided service wrappers
+### <a name="wrappers"> Provided service wrappers
 The wrappers return a Promise unless a callback is provided.
 See example/ for a working example of wrapper usage.
 
@@ -272,7 +272,7 @@ verifyReset.emailChange(password, email, user, cb)
 verifyReset.authenticate(email, password, cb)
 ```
 
-##### <a name="fetch"> HTTP fetch (docs todo)
+### <a name="fetch"> HTTP fetch (docs todo)
 
 ```javascript
 // check props are unique in the users items
@@ -285,11 +285,11 @@ fetch('/verifyReset/:action/:value', {
 ```
 
 
-##### <a name="redux"> React's Redux
+### <a name="redux"> React's Redux
 See feathers-reduxify-services for information about state, etc.
 See feathers-starter-react-redux-login-roles for a working example.
 
-###### <a name="reduxServices"> Dispatching services
+#### <a name="reduxServices"> Dispatching services
 
 ```javascript
 import feathers from 'feathers-client';
@@ -312,7 +312,7 @@ store.dispatch(services.verifyReset.create({ action: 'verifySignupLong',
 );
 ```
 
-###### <a name="reduxAuth"> Dispatching authentication. User must be verified to sign in.
+#### <a name="reduxAuth"> Dispatching authentication. User must be verified to sign in.
 
 ```javascript
 const reduxifyAuthentication = require('feathers-reduxify-authentication');
@@ -329,7 +329,7 @@ store.dispatch(signin.authenticate({ type: 'local', email, password }))
   .catch(err => { ... });
 ```
 
-##### <a name="vue"> Vue 2.0 (docs todo)
+### <a name="vue"> Vue 2.0 (docs todo)
 
 
 ## Hooks
@@ -507,7 +507,7 @@ You can then require the utilities.
 It will run on Node 6+ without transpiling.
 
 
-## <a name="example"> Install and run example
+## <a name="exampleRun"> Install and run example
 
 `cd example`
 
