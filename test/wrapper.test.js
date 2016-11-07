@@ -61,7 +61,7 @@ describe('wrapper - instantiate', () => {
     verifyResetService().call(app);
     const verifyReset = new VerifyReset(app);
 
-    ['checkUnique', 'resendVerify', 'verifySignupLong', 'verifySignupShort', 'sendResetPwd',
+    ['checkUnique', 'resendVerifySignup', 'verifySignupLong', 'verifySignupShort', 'sendResetPwd',
       'resetPwdLong', 'resetPwdShort', 'passwordChange', 'emailChange',
     ].forEach(method => {
       assert.isFunction(verifyReset[method], `${method} is not a function`);
@@ -89,9 +89,9 @@ describe('wrapper - methods', () => {
   });
 
   it('resendVerify', () => {
-    verifyReset.resendVerify('a@a.com', () => {
+    verifyReset.resendVerifySignup('a@a.com', () => {
       assert.deepEqual(spyParams, {});
-      assert.deepEqual(spyData, { action: 'resendVerify', value: 'a@a.com' });
+      assert.deepEqual(spyData, { action: 'resendVerifySignup', value: 'a@a.com' });
     });
   });
 

@@ -53,7 +53,7 @@ exports.after = {
   ],
   create: [
     hooks.remove('password'),
-    emailVerification, // send email to verify the email addr
+    userNotificationCreate, // send notification to verify the email addr
     verifyHooks.removeVerification(true), // return tokens for test scaffold
   ],
   update: [
@@ -70,12 +70,18 @@ exports.after = {
   ],
 };
 
-function emailVerification(hook, next) {
+function userNotificationCreate(hook, next) {
+  // Data from the UI may be used to determine the transport for notifying the user.
   const user = hook.result;
+  
+  const slugForUrl = {
+    socketio: 'socket',
+    rest: 'rest',
+  }[hook.params.provider];
 
-  console.log('-- Sending email to verify new user\'s email addr');
+  console.log('-- Sending notification to verify new user\'s email addr');
   console.log(`Dear ${user.username}, please click this link to verify your email addr.`);
-  console.log(`  http://localhost:3030/socket/verify/${user.verifyToken}`);
+  console.log(`  http://localhost:3030/${slugForUrl}/verify/${user.verifyToken}`);
 
   next(null, hook);
 }

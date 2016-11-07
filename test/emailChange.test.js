@@ -155,7 +155,7 @@ describe('emailChange - setup', () => {
               assert.deepEqual(spyEmailer.result(), [
                 {
                   args: [
-                    'email',
+                    'emailChange',
                     Object.assign(sanitizeUserForEmail(db[i]), { email: oldEmail, newEmail: email }),
                     {},
                     email,

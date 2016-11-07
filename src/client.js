@@ -7,7 +7,7 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
     return new VerifyReset(app);
   }
 
-  const verifyReset = app.service('/verifyReset/:action/:value');
+  const verifyReset = app.service('/verifyReset');
 
   this.checkUnique = (uniques, ownId, ifErrMsg, cb) => {
     verifyReset.create({
@@ -18,10 +18,12 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
     }, {}, cb);
   };
 
-  this.resendVerify = (emailOrToken, cb) => {
+  this.resendVerifySignup = (emailOrToken, notifierOptions, cb) => {
+    console.log('client resendVerify', emailOrToken);
     verifyReset.create({
-      action: 'resendVerify',
+      action: 'resendVerifySignup',
       value: emailOrToken,
+      notifierOptions,
     }, {}, cb);
   };
 
@@ -34,15 +36,16 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
   
   this.verifySignupShort = (token, userFind, cb) => {
     verifyReset.create({
-      action: 'verifySignupLong',
+      action: 'verifySignupShort',
       value: { token, user: userFind }
     }, {}, cb);
   };
 
-  this.sendResetPwd = (email, cb) => {
+  this.sendResetPwd = (email, notifierOptions, cb) => {
     verifyReset.create({
       action: 'sendResetPwd',
       value: email,
+      notifierOptions,
     }, {}, cb);
   };
 
@@ -55,7 +58,7 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
   
   this.resetPwdShort = (token, userFind, password, cb) => {
     verifyReset.create({
-      action: 'resetPwdLong',
+      action: 'resetPwdShort',
       value: { token, password, user: userFind },
     }, {}, cb);
   };
@@ -99,6 +102,7 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
   
   // backwards compatability
   this.unique = this.checkUnique;
+  this.resend = this.resendVerifySignup;
   this.verifySignUp = this.verifySignupLong;
   this.sendResetPassword = this.sendResetPwd;
   this.saveResetPassword = this.resetPwdLong;

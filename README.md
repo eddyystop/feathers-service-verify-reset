@@ -7,10 +7,10 @@ Adds user email verification, forgotten password reset, and other capabilities t
 
 - Checking that values for fields like email and username are unique within `users` items.
 - Hooks for adding a new user.
-- Send another email address verification, routing through your email or SMS transports.
+- Send another email address verification notification, routing through your email or SMS transports.
 - Process an email address verification from a URL response.
-- Process an email address verification from an SMS notification.
-- Send a forgotten password reset, routing through your email or SMS transports.
+- Process an email address verification after an SMS notification.
+- Send a forgotten password reset notification, routing through your email or SMS transports.
 - Process a forgotten password reset from a URL response.
 - Process a forgotten password reset from an SMS notification.
 - Process password change.
@@ -26,17 +26,24 @@ User notifications may be sent for:
 - Manual change of a password.
 - The previous email address is notified of a change of email address.
 
-A 30-char slug is generated suitable for URL responses embedded in email,
-SMS or social media notifications.
+May be used with
+
+- `feathers-client` service calls over websockets or HTTP.
+- Client side wrappers for `feathers-client` service calls. 
+- HTTP POST calls.
+- React's Redux.
+- Vue (docs to do)
+
+A 30-char token is generated suitable for URL responses.
 (Configurable length.)
-This may be embedded in URL links sent by email or SMS
+This may be embedded in URL links sent by email, SMS or social media
 so that clicking the link starts the email address verification or the password reset.
 
-A 6-digit slug is also generated suitable for notification by SMS or social media.
-(Configurable length, may be alphanumeric instead.)
-This slug may be manually entered in a UI to start the email address verification or the password reset.
+A 6-digit token is also generated suitable for notification by SMS or social media.
+(Configurable length, may be alpha-numeric instead.)
+This may be manually entered in a UI to start the email address verification or the password reset.
 
-The email verification slug has a 5-day expiry (configurable),
+The email verification token has a 5-day expiry (configurable),
 while the password reset has a 2 hour expiry (configurable).
 
 Typically your user notifier refers to a property like `user.preferredCommunication: 'email'`
@@ -47,69 +54,326 @@ when resending a email address verification and sending a forgotten password res
 The server does not handle any interactions with the user.
 Leaving it a pure API server, lets it be used with both native and browser clients.
 
-## Code Example
+## Contents
+- [Code example](#codeExample)
+- [The service](#service)
+- [Client](#client)
+    - [Using Feathers's method calls](#methods)
+    - [Provided service wrappers(#wrappers)
+    - [HTTP fetch](#fetch)
+    - [React's redux](#redux)]
+        - [Dispatching services](#reduxservices)
+        - [Dispatching authentication](#reduxAuth)
+    - [Vue 2.0 {to do}](#vue)
+- [Hooks](#hooks)
+- [Database](#database)
+- [Routing](#routing)
+- [Security](#security)
+- [Configurable](#configurable)
+- [Migration from 0.8.0](#migration)
+- [Motivation](#motivation)
+- [Install package](#package)
+- [Install and run example](#example)
+- [Tests](tests)
+    
 
-The folder `example` presents a full featured server/browser implementation
-whose UI lets you try the API.
-*todo: update example/ to latest features*
+## <a name="codeExample"> Code Example
 
-### Server
+The folder `example/` presents a full featured server/browser implementation
+whose UI lets you exercise the API.
 
-Configure package in Feathersjs.
+## <a name="service"> The service
 
 ```javascript
-const verifyReset = require('feathers-service-verify-reset').service;
-
-module.exports = function () { // 'function' needed as we use 'this'
-  const app = this;
-  app.configure(authentication);
-  app.configure(verifyReset({ userNotifier })); // line added
-  app.configure(user);
-  app.configure(message);
-};
-
-function userNotifier(action, user, notifierOptions, newEmail, cb) {
-  switch (action) {
-    // resend (send another verification email), verify (email addr has been verified)
-    // forgot (send forgot password email), reset (password has been reset)
-  }
-  cb(null);
-}
+app.configure(authentication)
+  .configure(verifyReset({ options }))
+  .configure(user);
 ```
+
+`options` are:
+- userNotifier: `function(type, user, notifierOptions, newEmail, cb)`
+   - type: type of notification
+     - 'resendVerifySignup'    from resendVerifySignup API call
+     - 'verifySignup'          from verifySignupLong and verifySignupShort API calls
+     - 'sendResetPwd'          from sendResetPwd API call
+     - 'resetPwd'              from resetPwdLong and resetPwdShort API calls
+     - 'passwordChange'        from passwordChange API call
+     - 'emailChange'           from emailChange API call
+   - user: user's item, minus password.
+   - notifierOptions: notifierOptions option from resendVerifySignup and sendResetPwd API calls
+   - newEmail: the new email address from emailChange API call
+- longTokenLen: Half the length of the long token. Default is 15, giving 30-char tokens.
+- shortTokenLen: Length of short token. Default is 6.
+- shortTokenDigits: Short token is digits if true, else alphanumeric. Default is true.
+- delay: Duration for sign up email verification token in ms. Default is 5 days.
+- resetDelay: Duration for password reset token in ms. Default is 2 hours.
+- userPropsForShortToken: A 6-digit short token is more susceptible to brute force attack than a 30-char token.
+   Therefore the verifySignupShort and resetPwdShort API calls require the user be identified
+   using a find-query-like object. To prevent this itself from being an attack vector,
+   userPropsForShortToken is an array of valid properties allowed in that query object.
+   The default is ['email']. You may change it to ['email', 'username'] if you want to
+   identify users by {email} or {username} or {email, username}.
+
+The service creates and maintains the following properties in the `user` item:
+
+- isVerified:        if the user's email addr has been verified (boolean)
+- verifyToken:       the 30-char token generated for email addr verification (string)
+- verifyTokenShort:  the 6-digit token generated for email addr verification (string)
+- verifyExpires:     when the email addr token expire (Date)
+- resetToken:        the 30-char token generated for forgotten password reset (string)
+- resetTokenShort:   the 6-digit token generated for forgotten password reset (string)
+- resetExpires:      when the forgotten password token expire (Date)
+
 
 The `users` service is expected to be already configured.
-Its `patch` method is used to update the password when needed
-and therefore `path` may *not* have a `auth.hashPassword()` hook.
+Its `patch` method is used to update the password when needed,
+therefore `patch` may *not* have a `auth.hashPassword()` hook.
 
-An email to verify the user's email addr can be sent when user if created on the server,
-e.g. `/src/services/user/hooks/index`:
+
+## <a name="client"> Client
+
+The service may be called on the client using
+- (A1) Feathers method calls,
+- (A2) provided service wrappers,
+- (A3) HTTP fetch **(docs todo)**
+- (A4) React's Redux
+- (A5) Vue 2.0 **(docs todo)**
+
+##### <a name="methods"> Using Feathers' method calls
+Method calls return a Promise unless a callback is provided.
 
 ```javascript
-const verifyHooks = require('feathers-service-verify-reset').hooks;
+const verifyReset = app.service('/verifyReset/:action/:value');
+verifyReset.create({ action, value, ... [, cb]});
 
-exports.before = {
-  // ...
-  create: [
-    auth.hashPassword(),
-    verifyHooks.addVerification(), // set email addr verification info
-  ],
+// check props are unique in the users items
+verifyReset.create({ action: 'checkUnique',
+  value: uniques, // e.g. {email, username}. Props with null or undefined are ignored.
+  ownId, // excludes your current user from the search
+  meta: { noErrMsg }, // if return an error.message if not unique
+}, {}, cb)
 
-exports.after = {
-  // ...
-  create: [
-    hooks.remove('password'), // hook is ignored if server initiated operation
-    emailVerification, // send email to verify the email addr
-    verifyHooks.removeVerification(), // hook is ignored if server initiated operation
-  ],
-};
+// resend email verification notification
+verifyReset.create({ action: 'resendVerifySignup',
+  value: emailOrToken, // email, {email}, {token}
+  notifierOptions: {}, // options passed to options1.userNotifier, e.g. {transport: 'sms'}
+}, {}, cb)
 
-function emailVerification(hook, next) {
-  // ...
-  next(null, hook);
-}
+// email addr verification with long token
+verifyReset.create({ action: 'verifySignupLong',
+  value: token, // compares to .verifyToken
+}, {}, cb)
+
+// email addr verification with short token
+verifyReset.create({ action: 'verifySignupShort',
+  value: {
+    token, // compares to .verifyTokenShort
+    user: {} // identify user, e.g. {email: 'a@a.com'}. See options1.userPropsForShortToken.
+  }
+}, {}, cb)
+
+// send forgotten password notification
+verifyReset.create({ action: 'sendResetPwd',
+  value: email,
+  notifierOptions: {}, // options passed to options1.userNotifier, e.g. {transport: 'sms'}
+}, {}, cb)
+
+// forgotten password verification with long token
+verifyReset.create({ action: 'resetPwdLong',
+  value: {
+    token, // compares to .resetToken
+    password, // new password
+  },
+}, {}, cb)
+
+// forgotten password verification with short token
+verifyReset.create({ action: 'resetPwdShort',
+  value: {
+    token, // compares to .resetTokenShort
+    password, // new password
+    user: {} // identify user, e.g. {email: 'a@a.com'}. See options1.userPropsForShortToken.
+  },
+}, {}, cb)
+
+// change password
+verifyReset.create({ action: 'passwordChange',
+  value: {
+    oldPassword, // old password for verification
+    password, // new password
+  },
+}, { user }, cb)
+
+// change email
+verifyReset.create({ action: 'emailChange',
+  value: {
+    password, // current password for verification
+    email, // new email
+  },
+}, { user }, cb)
+
+// Authenticate user and log on if user is verified.
+var cbCalled = false;
+app.authenticate({ type: 'local', email, password })
+  .then((result) => {
+    const user = result.data;
+    if (!user || !user.isVerified) {
+      app.logout();
+      cb(new Error(user ? 'User\'s email is not verified.' : 'No user returned.'));
+      return;
+    }
+    cbCalled = true;
+    cb(null, user);
+  })
+  .catch((err) => {
+    if (!cbCalled) { cb(err); } // ignore throws from .then( cb(null, user) )
+  });
+````
+
+##### <a name="wrappers"> Provided service wrappers
+The wrappers return a Promise unless a callback is provided.
+See example/ for a working example of wrapper usage.
+
+```javascript`
+<script src=".../feathers-service-verify-reset/lib/client.js"></script>
+  or
+import VerifyRest from 'feathers-service-verify-reset/lib/client';
+
+const app = feathers() ...
+const verifyReset = new VerifyReset(app);
+
+// check props are unique in the users items
+verifyReset.checkUnique(uniques, ownId, ifErrMsg, cb)
+
+// resend email verification notification
+verifyReset.resendVerifySignup(emailOrToken, notifierOptions, cb)
+
+// email addr verification with long token
+verifyReset.verifySignupLong(token, cb)
+
+// email addr verification with short token
+verifyReset.verifySignupShort(token, userFind, cb)
+
+// send forgotten password notification
+verifyReset.sendResetPwd(email, notifierOptions, cb)
+
+// forgotten password verification with long token
+verifyReset.resetPwdLong(token, password, cb)
+
+// forgotten password verification with short token
+verifyReset.resetPwdShort(token, userFind, password, cb)
+
+// change password
+verifyReset.passwordChange(oldPassword, password, user, cb)
+
+// change email
+verifyReset.emailChange(password, email, user, cb)
+
+// Authenticate user and log on if user is verified.
+verifyReset.authenticate(email, password, cb)
 ```
 
-#### <a name="database"> Database
+##### <a name="fetch"> HTTP fetch (docs todo)
+
+```javascript
+// check props are unique in the users items
+// Set params just like (A1).
+fetch('/verifyReset/:action/:value', {
+  method: 'POST', headers: { Accept: 'application/json' },
+  body: JSON.stringify({ action: 'checkUnique', value: uniques, ownId, meta: { noErrMsg } })
+})
+  .then(data => { ... }).catch(err => { ... });
+```
+
+
+##### <a name="redux"> React's Redux
+See feathers-reduxify-services for information about state, etc.
+See feathers-starter-react-redux-login-roles for a working example.
+
+###### <a name="reduxServices"> Dispatching services
+
+```javascript
+import feathers from 'feathers-client';
+import reduxifyServices, { getServicesStatus } from 'feathers-reduxify-services';
+const app = feathers().configure(feathers.socketio(socket)).configure(feathers.hooks());
+const services = reduxifyServices(app, ['users', 'verifyReset', ...]);
+...
+// hook up Redux reducers
+export default combineReducers({
+  users: services.users.reducer,
+  verifyReset: services.verifyReset.reducer,
+});
+...
+
+// email addr verification with long token
+// Feathers is now 100% compatible with Redux. Use just like (A1).
+store.dispatch(services.verifyReset.create({ action: 'verifySignupLong',
+    value: token, // compares to .verifyToken
+  }, {})
+);
+```
+
+###### <a name="reduxAuth"> Dispatching authentication. User must be verified to sign in.
+
+```javascript
+const reduxifyAuthentication = require('feathers-reduxify-authentication');
+const signin = reduxifyAuthentication(app, { isUserAuthorized: (user) => user.isVerified });
+
+// Sign in with the JWT currently in localStorage
+if (localStorage['feathers-jwt']) {
+  store.dispatch(signin.authenticate()).catch(err => { ... });
+}
+
+// Sign in with credentials
+store.dispatch(signin.authenticate({ type: 'local', email, password }))
+  .then(() => { ... )
+  .catch(err => { ... });
+```
+
+##### <a name="vue"> Vue 2.0 (docs todo)
+
+
+## Hooks
+Thw service does not itself handle creation of a new user account nor the sending of the initial
+email verification request.
+Instead hooks are provided for you to use with the `users` service `create` method.
+
+```javascript
+const verifyHooks = require('feathers-service-verify-reset').verifyResetHooks;
+// users service
+module.exports.before = {
+  create: [
+    auth.hashPassword(),
+    verifyHooks.addVerification() // adds .isVerified, .verifyExpires, .verifyToken props
+  ]
+};
+module.exports.after = {
+  create: [
+    hooks.remove('password'),
+    aHookToEmailYourVerification(),
+    verifyHooks.removeVerification() // removes verification/reset fields other than .isVerified
+  ]
+};
+```
+
+A hook is provided to ensure the user's email addr is verified:
+
+```javascript
+const auth = require('feathers-authentication').hooks;
+const verify = require('feathers-service-verify-reset').hooks;
+export.before = {
+  create: [
+    auth.verifyToken(),
+    auth.populateUser(),
+    auth.restrictToAuthenticated(),
+    verify.restrictToVerified()
+  ]
+};
+```
+
+An email to verify the user's email addr can be sent when user if created on the server,
+e.g. `example/src/services/user/hooks/index`:
+
+## <a name="database"> Database
 
 The service adds the following optional properties to the user item.
 You should add them to your user model if your database uses models.
@@ -124,67 +388,12 @@ You should add them to your user model if your database uses models.
 }
 ```
 
-
-### Client
-
-Client loads a wrapper for the package
-
-```html
-<script src=".../feathers-service-verify-reset/lib/client.js"></script>
-```
-
-or
-```javascript
-import VerifyRest from 'feathers-service-verify-reset/lib/client'; 
-```
-
-and then uses convenient APIs.
-
-```javascript
-const app = feathers() ...
-const verifyReset = new VerifyReset(app);
-
-// Verify the username and email are unique.
-verifyReset.unique({ username, email }, null, false, (err) => { // not unique if err ... });
-
-// Add a new user, using standard feathers users service.
-// Then send a verification email with a link containing a slug.
-users.create(user, (err, user) => { ... });
-
-// Resend another email address verification email. New link, new slug.
-verifyReset.resendVerify(email, (err, user) => { ... });
-verifyReset.resendVerify({ verifyToken }, (err, user) => { ... })
-
-// Verify email address once user clicks link in the verification email.
-// Then send a confirmation email.
-verifyReset.verifySignUp(slug, (err, user) => { ... });
-
-// Authenticate (sign in) user, requiring user to be verified.
-verifyReset.authenticate(email, password, (err, user) => { ... });
-
-// Send email for a forgotten password with a link containing a slug.
-verifyReset.sendResetPassword(email, (err, user) => { ... });
-
-// Reset the new password once the user follows the link in the reset email 
-// and enters a new password. Then send a confirmation email.
-verifyReset.saveResetPassword(slug, password, (err, user) => { ... });
-
-// Change the password and send a confirmation email.
-verifyReset.changePassword(oldPassword, newPassword, currentUser, (err, user) => { ... });
-
-// Change the email and send a confirmation email to the old email address..
-verifyReset.changeEmail(password, newEmail, currentUser, (err, user) => { ... });
-```
-
-A promise is always returned by each API.
-The callback, if provided, is invoked in a scope outside the Promise chain
-so any error in the callback will not cause a `.catch` to fire.
-
-### Routing
+## <a name="routing"> Routing
 
 The client handles all interactions with the user.
-Therefore the server must serve the client app when an email link is followed,
-and the client must do some routing based on the path in the link.
+Therefore the server must serve the client app when, for example, a URL link is followed
+for email addr verification.
+The client must do some routing based on the path in the link.
 
 Assume you have sent the email link:
 `http://localhost:3030/socket/verify/12b827994bb59cacce47978567989e`
@@ -201,7 +410,7 @@ app.use('/', serveStatic(app.get('public')))
 
 The client then routes itself based on the URL.
 You will likely use you favorite client-side router,
-but a way primitive routing would be:
+but a primitive routing would be:
 
 ```javascript
 const [leader, provider, action, slug] = window.location.pathname.split('/');
@@ -218,12 +427,75 @@ switch (action) {
 }
 ```
 
-## Motivation
+## <a name="security"> Security
+- The user must be identified when the short token is used, making the short token less appealing
+as an attack vector.
+- The long and short tokens are erased on successful verification and password reset attempts.
+New tokens must be acquired for another attempt.
+- API params are verified to be strings. If the param is an object, the values of its props are
+verified to be strings.
+- options1.userPropsForShortToken restricts the prop names allowed in param objects.
+
+## <a name="configurable"> Configurable
+The length of the "30-char" token is configurable.
+The length of the "6-digit" token is configurable. It may also be configured as alphanumeric.
+
+## <a name="migration"> Migration from 0.8.0
+A few changes are needed to migrate to 1.0.0. Names were standardized throughout the
+new version and these had to be changed.
+
+```text
+options1.userNotifier signature
+  was (type, user1, params, cb)
+  now (type, user1, notifierOptions, newEmail, cb)
+options1.userNotifier param 'type'
+  'resend'   now 'resendVerifySignup'
+  'verify'   now 'verifySignup'
+  'forgot'   now 'sendResetPwd'
+  'reset'    now 'resetPwd'
+  'password' now 'passwordChange'
+  'email'    now 'emailChange'
+
+Error messages used to return
+  new errors.BadRequest('Password is incorrect.',
+    { errors: { password: 'Password is incorrect.' } })
+This was hacky although convenient if the names matched your UI. Now they return
+  new errors.BadRequest('Password is incorrect.',
+    { errors: { password: 'Password is incorrect.', $className: 'badParams' } })
+or even
+  new errors.BadRequest('Password is incorrect.',
+    { errors: { $className: 'badParams' } })
+Set your local UI errors based on the $className value.
+
+The following are deprecated but remain working. They will be removed in the future.
+options1
+  emailer    uses options1.userNotifier
+API param 'action'
+  'unique'   uses 'checkUnique'
+  'resend'   uses 'resendVerifySignup'
+  'verify'   uses 'verifySignupLong'
+  'forgot'   uses 'sendResetPwd'
+  'reset'    uses 'resetPwdLong'
+  'password' uses 'passwordChange'
+  'email'    uses 'emailChange'
+client wrapper
+  .unique            uses .checkUnique
+  .verifySignUp      uses .verifySignupLong
+  .sendResetPassword uses .sendResetPwd
+  .saveResetPassword uses .resetPwdLong
+  .changePassword    uses .passwordChange
+  .changeEmail       uses .emailChange
+
+The service now uses the route /verifyreset rather than /verifyReset/:action/:value
+```
+
+
+## <a name="motivation"> Motivation
 
 Email addr verification and handling forgotten passwords are common features
 these days. This package adds that functionality to Feathersjs.
 
-## Install package
+## <a name="install"> Install package
 
 Install [Nodejs](https://nodejs.org/en/).
 
@@ -235,7 +507,7 @@ You can then require the utilities.
 It will run on Node 6+ without transpiling.
 
 
-## Install and run example
+## <a name="example"> Install and run example
 
 `cd example`
 
@@ -251,33 +523,13 @@ The two clients differ only in their how they configure `feathers-client`.
 [feathers-starter-react-redux-login-roles](https://github.com/eddyystop/feathers-starter-react-redux-login-roles)
 is a full-featured example of using this repo with React and Redux.
 
-## API Reference
 
-The following properties are added to `user` data:
-
-- `isVerified` {Boolean} if user's email addr has been verified.
-- `verifyToken` {String|null} token (slug) emailed for email addr verification.
-- `verifyExpires` {Number|null} date-time when token expires.
-- `resetToken` {String|null?} optional token (slug) emailed for password reset.
-- `resetExpires` {Number|null?} date-time when token expires.
-
-See Code Example section above.
-
-See `example` folder for a fully functioning example.
-
-This repo does some of the heavy lifting for
-[feathers-starter-react-redux-login-roles](https://github.com/eddyystop/feathers-starter-react-redux-login-roles)
-where all of its features are used.
-
-## Tests
-
-`npm run test:only` to run tests with the existing ES5 transpiled code.
+## <a name="tests"> Tests
 
 `npm test` to transpile to ES5 code, eslint and then run tests on Nodejs 6+.
 
-`npm run cover` to run tests plus coverage.
 
-## <a name="changeLog"></a> Change Log
+## Change Log
 
 [List of notable changes.](./CHANGELOG.md)
 

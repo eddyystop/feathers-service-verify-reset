@@ -66,27 +66,40 @@
   </head>
   <body>
   <div id="control-panel">
-    <h4>Verify user's email</h4>
+    <h4>feathers-service-verify-reset</h4>
     <span style="font-size: small">Open dev-tools to see console messages</span>
     <br />
     <br />
+    <h5>Add user & send email addr verification notification</h5>
     <input type="button" id="add-user" value="create user" />
     <input type="text" id="name" placeholder="user name" size="15" />
     <input type="text" id="email" placeholder="email: a@a.com" size="15" />
     <input type="text" id="password" placeholder="password: a" size="15" />
     <br />
     <br />
-    <span style="font-size: small">This link would be sent to user's email. Click it to verify the email:</span>
+    <br />
+    <h5>Verify user's email addr, either by URL or SMS token</h5>
+    <span style="font-size: small">This link could be sent to user's email. Click it to verify the email:</span>
     <br />
     <a id="verify" href=""></a>
     <br />
+    <span style="font-size: small">and/or this SMS code could be sent to user's phone. Click below to verify the email:</span>
     <br />
+    <input type="button" id="verify-user-short" value="verify user by SMS" />
+    <input type="text" id="verify-short" placeholder="SMS code" size="15" />
+    <input type="text" id="verify-email" placeholder="email" size="15" />
+    <br />
+    <br />
+    <br />
+    <h5>Send another email addr verification notification</h5>
     <input type="button" id="resend-verify" value="resend verification" />
     <input type="text" id="resend-email" placeholder="email: a@a.com" size="15" />
     <br />
-    <span style="font-size: small">The server console shows any verification link resent to user's email.</span>
+    <span style="font-size: small">The server console shows the notification sent.</span>
     <br />
     <br />
+    <br />
+    <h5>Sign in and then create a message</h5>
     <input type="button" id="signin-user" value="sign in" />
     <input type="text" id="email-signin" placeholder="email: a@a.com" size="15" />
     <input type="text" id="password-signin" placeholder="password: a" size="15" />
@@ -95,16 +108,17 @@
     <input type="button" id="log-out" value="log out" />
     <br />
     <br />
+    <br />
     <input type="button" id="message" value="create a message" />
     <span style="font-size: small">Server checks that the user has been verified.</span>
     <br />
     <br />
-    <h4>Reset password</h4>
     <br />
+    <h5>Send a forgotten password notification</h5>
     <input type="button" id="reset-pwd" value="reset password" />
     <input type="text" id="reset-email" placeholder="email: a@a.com" size="15" />
     <br />
-    <span style="font-size: small">The server console shows any password reset link sent to user's email.</span>
+    <span style="font-size: small">The server console shows the notification sent.</span>
   </div>
 
   <div id="verify-signup" style="display:none">

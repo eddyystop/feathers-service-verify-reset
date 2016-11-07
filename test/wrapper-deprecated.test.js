@@ -51,7 +51,7 @@ const verifyResetServiceFake = function () {
 
 // Tests
 
-describe('wrapper - instantiate', () => {
+describe('wrapper - deprecated - instantiate', () => {
   it('exists', () => {
     assert.isFunction(VerifyReset);
   });
@@ -61,7 +61,7 @@ describe('wrapper - instantiate', () => {
     verifyResetService().call(app);
     const verifyReset = new VerifyReset(app);
 
-    ['unique', 'resendVerify', 'verifySignUp', 'sendResetPassword', 'saveResetPassword',
+    ['unique', 'resendVerifySignup', 'verifySignUp', 'sendResetPassword', 'saveResetPassword',
       'changePassword', 'changeEmail',
     ].forEach(method => {
       assert.isFunction(verifyReset[method], `${method} is not a function`);
@@ -69,7 +69,7 @@ describe('wrapper - instantiate', () => {
   });
 });
 
-describe('wrapper - methods', () => {
+describe('wrapper - deprecated - methods', () => {
   var app;
   var verifyReset;
 
@@ -89,9 +89,9 @@ describe('wrapper - methods', () => {
   });
 
   it('resendVerify', () => {
-    verifyReset.resendVerify('a@a.com', () => {
+    verifyReset.resend('a@a.com', () => {
       assert.deepEqual(spyParams, {});
-      assert.deepEqual(spyData, { action: 'resendVerify', value: 'a@a.com' });
+      assert.deepEqual(spyData, { action: 'resendVerifySignup', value: 'a@a.com' });
     });
   });
 

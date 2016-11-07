@@ -238,7 +238,7 @@ const usersDb = [
       
               assert.deepEqual(spyEmailer.result(), [
                 { args: [
-                  'forgot',
+                  'sendResetPwd',
                   sanitizeUserForEmail(db[i]),
                   { transport: 'sms' },
                   ''
@@ -296,7 +296,7 @@ const usersDb = [
           
               assert.deepEqual(spyEmailer.result(), [
                 { args: [
-                  'forgot',
+                  'sendResetPwd',
                   sanitizeUserForEmail(db[i]),
                   { transport: 'sms' },
                   ''

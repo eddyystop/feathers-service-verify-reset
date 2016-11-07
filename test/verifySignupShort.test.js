@@ -13,10 +13,10 @@ const SpyOn = require('./helpers/basicSpy');
 const now = Date.now();
 const usersDb = [
   // The added time interval must be longer than it takes to run ALL the tests
-  { _id: 'a', email: 'a', username: 'aa', isVerified: false, verifyToken: '000', verifyShortToken: '00099', verifyExpires: now + 100000 },
+  { _id: 'a', email: 'a', username: 'aa', isVerified: false, verifyToken: '000', verifyShortToken: '00099', verifyExpires: now + 200000 },
   { _id: 'b', email: 'b', username: 'bb', isVerified: false, verifyToken: null, verifyShortToken: null, verifyExpires: null },
-  { _id: 'c', email: 'c', username: 'cc', isVerified: false, verifyToken: '111', verifyShortToken: '11199', verifyExpires: now - 100000 },
-  { _id: 'd', email: 'd', username: 'dd', isVerified: true, verifyToken: '222', verifyShortToken: '22299', verifyExpires: now - 100000 },
+  { _id: 'c', email: 'c', username: 'cc', isVerified: false, verifyToken: '111', verifyShortToken: '11199', verifyExpires: now - 200000 },
+  { _id: 'd', email: 'd', username: 'dd', isVerified: true, verifyToken: '222', verifyShortToken: '22299', verifyExpires: now - 200000 },
 ];
 
 // Tests
@@ -223,7 +223,7 @@ const usersDb = [
         
               assert.deepEqual(spyEmailer.result(), [{
                 args: [
-                  'verify',
+                  'verifySignup',
                   Object.assign({}, sanitizeUserForEmail(db[i])),
                   {},
                   ''

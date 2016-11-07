@@ -61,7 +61,7 @@ describe('passwordChange - setup', () => {
 
 ['_id', 'id'].forEach(idType => {
   ['paginated', 'non-paginated'].forEach(pagination => {
-    describe(`verifyReset::password ${pagination} ${idType}`, () => {
+    describe(`passwordChange ${pagination} ${idType}`, () => {
       const ifNonPaginated = pagination === 'non-paginated';
 
       describe('standard', () => {
@@ -176,7 +176,7 @@ describe('passwordChange - setup', () => {
   
               assert.deepEqual(spyEmailer.result(), [
                 { args: [
-                  'password',
+                  'passwordChange',
                   sanitizeUserForEmail(db[i]),
                   {},
                   ''

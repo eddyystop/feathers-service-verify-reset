@@ -25,19 +25,19 @@ var options = {
  *
  * @param {Object?} options1 - for service
  *
- * options1.userNotifier - function(action, user, notifierOptions, newEmail, cb)
- *    action          type of notification
- *      resend          resendVerifySignup API call
- *      verify          verifySignupLong and verifySignupShort API calls
- *      forgot          sendResetPwd API call
- *      reset           resetPwdLong and resetPwdShort API calls
- *      password        passwordChange API call
- *      email           emailChange API call
- *    user            user's information.
+ * options1.userNotifier - function(type, user, notifierOptions, newEmail, cb)
+ *    type                    type of notification
+ *      'resendVerifySignup'    from resendVerifySignup API call
+ *      'verifySignup'          from verifySignupLong and verifySignupShort API calls
+ *      'sendResetPwd'          from sendResetPwd API call
+ *      'resetPwd'              from resetPwdLong and resetPwdShort API calls
+ *      'passwordChange'        from passwordChange API call
+ *      'emailChange'           from emailChange API call
+ *    user            user's item, minus password.
  *    notifierOptions notifierOptions option from resendVerifySignup and sendResetPwd API calls
  *    newEmail        the new email address from emailChange API call
  *
- *    The userNotifier needs to handle the resend and forgot actions at a minimum.
+ *    userNotifier needs to handle at least the resendVerifySignup and sendResetPwd notifications.
  *
  * options1.longTokenLen
  *    - Half the length of the long token. Default is 15, giving 30-char tokens.
@@ -59,7 +59,7 @@ var options = {
  *
  * @returns {Function} Featherjs service
  *
- * (A) SERVICE
+ * (A) THE SERVICE
  * The service creates and maintains the following properties in the user item:
  *    isVerified        if the user's email addr has been verified (boolean)
  *    verifyToken       the 30-char token generated for email addr verification (string)
@@ -78,7 +78,8 @@ var options = {
  * - (A1) Feathers method calls,
  * - (A2) provided service wrappers,
  * - (A3) HTTP fetch **(docs todo)**
- * - (A4) Redux action creators
+ * - (A4) React's Redux
+ * - (A5) Vue 2.0 **(docs todo)**
  *
  * **(A1) USING FEATHERS' METHOD CALLS**
  * Method calls return a Promise unless a callback is provided.
@@ -88,13 +89,13 @@ var options = {
  *
  * // check props are unique in the users items
  * verifyReset.create({ action: 'checkUnique',
- *   value: uniques, // e.g. {email, username}
+ *   value: uniques, // e.g. {email, username}. Props with null or undefined are ignored.
  *   ownId, // excludes your current user from the search
  *   meta: { noErrMsg }, // if return an error.message if not unique
  * }, {}, cb)
  *
  * // resend email verification notification
- * verifyReset.create({ action: 'resendVerify',
+ * verifyReset.create({ action: 'resendVerifySignup',
  *   value: emailOrToken, // email, {email}, {token}
  *   notifierOptions: {}, // options passed to options1.userNotifier, e.g. {transport: 'sms'}
  * }, {}, cb)
@@ -105,7 +106,7 @@ var options = {
  * }, {}, cb)
  *
  * // email addr verification with short token
- * verifyReset.create({ action: 'verifySignupLong',
+ * verifyReset.create({ action: 'verifySignupShort',
  *   value: {
  *     token, // compares to .verifyTokenShort
  *     user: {} // identify user, e.g. {email: 'a@a.com'}. See options1.userPropsForShortToken.
@@ -127,7 +128,7 @@ var options = {
  * }, {}, cb)
  *
  * // forgotten password verification with short token
- * verifyReset.create({ action: 'resetPwdLong',
+ * verifyReset.create({ action: 'resetPwdShort',
  *   value: {
  *     token, // compares to .resetTokenShort
  *     password, // new password
@@ -151,48 +152,81 @@ var options = {
  *   },
  * }, { user }, cb)
  *
+ * // Authenticate user and log on if user is verified.
+ * var cbCalled = false;
+ * app.authenticate({ type: 'local', email, password })
+ *   .then((result) => {
+ *     const user = result.data;
+ *     if (!user || !user.isVerified) {
+ *       app.logout();
+ *       cb(new Error(user ? 'User\'s email is not verified.' : 'No user returned.'));
+ *       return;
+ *     }
+ *     cbCalled = true;
+ *     cb(null, user);
+ *   })
+ *   .catch((err) => {
+ *     if (!cbCalled) { cb(err); } // ignore throws from .then( cb(null, user) )
+ *   });
+ *
  *
  * **(A2) PROVIDED SERVICE WRAPPERS**
  * The wrappers return a Promise unless a callback is provided.
+ * See example/ for a working example of wrapper usage.
  *
+ * <script src=".../feathers-service-verify-reset/lib/client.js"></script>
+ *   or
  * import VerifyRest from 'feathers-service-verify-reset/lib/client';
+ *
  * const app = feathers() ...
  * const verifyReset = new VerifyReset(app);
  *
  * // check props are unique in the users items
- * verifyReset.checkUnique = (uniques, ownId, ifErrMsg, cb)
+ * verifyReset.checkUnique(uniques, ownId, ifErrMsg, cb)
  *
  * // resend email verification notification
- * verifyReset.resendVerify = (emailOrToken, cb)
+ * verifyReset.resendVerifySignup(emailOrToken, notifierOptions, cb)
  *
  * // email addr verification with long token
- * verifyReset.verifySignupLong = (token, cb)
+ * verifyReset.verifySignupLong(token, cb)
  *
  * // email addr verification with short token
- * verifyReset.verifySignupShort = (token, userFind, cb)
+ * verifyReset.verifySignupShort(token, userFind, cb)
  *
  * // send forgotten password notification
- * verifyReset.sendResetPwd = (email, cb)
+ * verifyReset.sendResetPwd(email, notifierOptions, cb)
  *
  * // forgotten password verification with long token
- * verifyReset.resetPwdLong = (token, password, cb)
+ * verifyReset.resetPwdLong(token, password, cb)
  *
  * // forgotten password verification with short token
- * verifyReset.resetPwdShort = (token, userFind, password, cb)
+ * verifyReset.resetPwdShort(token, userFind, password, cb)
  *
  * // change password
- * verifyReset.passwordChange = (oldPassword, password, user, cb)
+ * verifyReset.passwordChange(oldPassword, password, user, cb)
  *
  * // change email
- * verifyReset.emailChange = (password, email, user, cb)
+ * verifyReset.emailChange(password, email, user, cb)
+ *
+ * // Authenticate user and log on if user is verified.
+ * verifyReset.authenticate(email, password, cb)
  *
  *
  * **(A3) HTTP FETCH (docs todo)**
+ * // check props are unique in the users items
+ * // Set params just like (A1).
+ * fetch('/verifyReset/:action/:value', {
+ *   method: 'POST', headers: { Accept: 'application/json' },
+ *   body: JSON.stringify({ action: 'checkUnique', value: uniques, ownId, meta: { noErrMsg } })
+ * })
+ *   .then(data => { ... }).catch(err => { ... });
  *
  *
- * **(A4) REDUX ACTION CREATORS**
+ * **(A4) REACT'S REDUX**
  * See feathers-reduxify-services for information about state, etc.
+ * See feathers-starter-react-redux-login-roles for a working example.
  *
+ * (A4.1) Dispatching services
  * import feathers from 'feathers-client';
  * import reduxifyServices, { getServicesStatus } from 'feathers-reduxify-services';
  * const app = feathers().configure(feathers.socketio(socket)).configure(feathers.hooks());
@@ -201,14 +235,34 @@ var options = {
  * // hook up Redux reducers
  * export default combineReducers({
  *   users: services.users.reducer,
- *   messages: services.messages.reducer,
+ *   verifyReset: services.verifyReset.reducer,
  * });
  * ...
- * // Feathers is now 100% compatible with Redux. Use just like (1).
+ *
+ * // email addr verification with long token
+ * // Feathers is now 100% compatible with Redux. Use just like (A1).
  * store.dispatch(services.verifyReset.create({ action: 'verifySignupLong',
  *     value: token, // compares to .verifyToken
  *   }, {})
  * );
+ *
+ * (A4.2) Dispatching authentication. User must be verified to sign in.
+ * const reduxifyAuthentication = require('feathers-reduxify-authentication');
+ * const signin = reduxifyAuthentication(app, { isUserAuthorized: (user) => user.isVerified });
+ *
+ * // Sign in with the JWT currently in localStorage
+ * if (localStorage['feathers-jwt']) {
+ *   store.dispatch(signin.authenticate()).catch(err => { ... });
+ * }
+ *
+ * // Sign in with credentials
+ * store.dispatch(signin.authenticate({ type: 'local', email, password }))
+ *   .then(() => { ... )
+ *   .catch(err => { ... });
+ *
+ *
+ * **(A5) VUE 2.0 (docs todo)**
+ *
  *
  * (B) HOOKS
  * This service itself does not handle creation of a new user account nor the sending of the initial
@@ -245,22 +299,65 @@ var options = {
  * };
  *
  *
- * (C) CONFIGURABLE:
+ * (C) SECURITY
+ * - The user must be identified when the short token is used, making the short token less appealing
+ * as an attack vector.
+ * - The long and short tokens are erased on successful verification and password reset attempts.
+ * New tokens must be acquired for another attempt.
+ * - API params are verified to be strings. If the param is an object, the values of its props are
+ * verified to be strings.
+ * - options1.userPropsForShortToken restricts the prop names allowed in param objects.
+ *
+ * (D) CONFIGURABLE:
  * The length of the "30-char" token is configurable.
  * The length of the "6-digit" token is configurable. It may also be configured as alphanumeric.
  *
- * (D) 100% BACKWARDS COMPATIBILITY:
- * The following are deprecated and will be removed in the future.
+ * (E) MIGRATION FROM 0.8.0
+ * A few changes are needed to migrate to 1.0.0. Names were standardized throughout the
+ * new version and these had to be changed.
+ *
+ * options1.userNotifier signature
+ *   was (type, user1, params, cb)
+ *   now (type, user1, notifierOptions, newEmail, cb)
+ * options1.userNotifier param 'type'
+ *   'resend'   now 'resendVerifySignup'
+ *   'verify'   now 'verifySignup'
+ *   'forgot'   now 'sendResetPwd'
+ *   'reset'    now 'resetPwd'
+ *   'password' now 'passwordChange'
+ *   'email'    now 'emailChange'
+ *
+ * Error messages used to return
+ *   new errors.BadRequest('Password is incorrect.',
+ *     { errors: { password: 'Password is incorrect.' } })
+ * This was hacky although convenient if the names matched your UI. Now they return
+ *   new errors.BadRequest('Password is incorrect.',
+ *     { errors: { password: 'Password is incorrect.', $className: 'badParams' } })
+ * or even
+ *   new errors.BadRequest('Password is incorrect.',
+ *     { errors: { $className: 'badParams' } })
+ * Set your local UI errors based on the $className value.
+ *
+ * The following are deprecated but remain working. They will be removed in the future.
  * options1
  *   emailer    uses options1.userNotifier
- * action
- *   unique     uses checkUnique
- *   resend     uses resendVerify
- *   verify     uses verifySignupLong
- *   forgot     uses sendResetPwd
- *   reset      uses resetPwdLong
- *   password   uses passwordChange
- *   email      uses emailChange
+ * API param 'action'
+ *   'unique'   uses 'checkUnique'
+ *   'resend'   uses 'resendVerifySignup'
+ *   'verify'   uses 'verifySignupLong'
+ *   'forgot'   uses 'sendResetPwd'
+ *   'reset'    uses 'resetPwdLong'
+ *   'password' uses 'passwordChange'
+ *   'email'    uses 'emailChange'
+ * client wrapper
+ *   .unique            uses .checkUnique
+ *   .verifySignUp      uses .verifySignupLong
+ *   .sendResetPassword uses .sendResetPwd
+ *   .saveResetPassword uses .resetPwdLong
+ *   .changePassword    uses .passwordChange
+ *   .changeEmail       uses .emailChange
+ *
+ * The service now uses the route /verifyreset rather than /verifyReset/:action/:value
  *
  */
 module.exports.service = function (options1 = {}) {
@@ -272,7 +369,7 @@ module.exports.service = function (options1 = {}) {
   return function verifyReset() { // 'function' needed as we use 'this'
     debug('service initialized');
     const app = this;
-    const path = '/verifyReset/:action/:value';
+    const path = '/verifyReset';
     var users;
     var params;
 
@@ -287,6 +384,7 @@ module.exports.service = function (options1 = {}) {
       },
       create(data, params1, cb) {
         debug(`service called. action=${data.action}`);
+        var callbackCalled = false;
         var promise;
         
         users = app.service('/users'); // here in case users service is configured after verifyReset
@@ -298,7 +396,7 @@ module.exports.service = function (options1 = {}) {
             promise = checkUniqueness(data.value, data.ownId || null, data.meta || {});
             break;
           case 'resend': // backwards compatible, fall through
-          case 'resendVerify':
+          case 'resendVerifySignup':
             promise = resendVerifySignup(data.value, data.notifierOptions);
             break;
           case 'verify': // backwards compatible, fall through
@@ -333,10 +431,21 @@ module.exports.service = function (options1 = {}) {
         }
   
         if (cb) {
-          promiseToCallback(promise)(cb);
+          // Feathers cannot return an error to the client if we use process.nextTick(cb, err)
+          promise
+            .then(data => {
+              callbackCalled = true;
+              cb(null, data);
+            })
+            .catch(err => {
+              if (!callbackCalled) { // don't call cb should cb(null, data) throw
+                callbackCalled = true;
+                cb(err);
+              }
+            });
         }
   
-        return cb ? promise.catch(() => {}) : promise;
+        return promise;
       },
     });
 
@@ -379,11 +488,11 @@ module.exports.service = function (options1 = {}) {
       return Promise.resolve()
         .then(() => {
           if (typeof emailOrToken === 'string') { // backwards compatibility
-            return { email: emailOrToken };
+            emailOrToken = { email: emailOrToken };
           }
-
+  
           ensureObjPropsValid(emailOrToken, ['email', 'verifyToken', 'verifyShortToken']);
-
+  
           return emailOrToken;
         })
         .then(query => {
@@ -402,7 +511,7 @@ module.exports.service = function (options1 = {}) {
             verifyShortToken: shortToken,
           })
         )
-        .then(user => userNotifier('resend', user, notifierOptions))
+        .then(user => userNotifier('resendVerifySignup', user, notifierOptions))
         .then(user => sanitizeUserForClient(user));
     }
   
@@ -447,7 +556,7 @@ module.exports.service = function (options1 = {}) {
             verifyShortToken: null,
             verifyExpires: null,
           })
-            .then(user => userNotifier('verify', user))
+            .then(user => userNotifier('verifySignup', user))
             .then(user => sanitizeUserForClient(user));
         });
     }
@@ -474,7 +583,7 @@ module.exports.service = function (options1 = {}) {
             })
           }
         )
-        .then(user => userNotifier('forgot', user, notifierOptions))
+        .then(user => userNotifier('sendResetPwd', user, notifierOptions))
         .then(user => sanitizeUserForClient(user));
     }
 
@@ -522,7 +631,7 @@ module.exports.service = function (options1 = {}) {
             resetShortToken: null,
             resetExpires: null,
           })
-            .then(user => userNotifier('reset', user))
+            .then(user => userNotifier('resetPwd', user))
             .then(user => sanitizeUserForClient(user));
         });
     }
@@ -550,7 +659,7 @@ module.exports.service = function (options1 = {}) {
             password: hashedPassword,
           })
         )
-        .then(user1 => userNotifier('password', user1))
+        .then(user1 => userNotifier('passwordChange', user1))
         .then(user1 => sanitizeUserForClient(user1));
     }
 
@@ -574,7 +683,7 @@ module.exports.service = function (options1 = {}) {
               { errors: { password: 'Password is incorrect.', $className: 'badParams' } })
           ),
         ]))
-        .then(([user1]) => userNotifier('email', user1, null, email)) // value from comparePassword not need
+        .then(([user1]) => userNotifier('emailChange', user1, null, email)) // value from comparePassword not need
         .then(user1 => patchUser(user1, { email }))
         .then(user1 => sanitizeUserForClient(user1));
     }
@@ -798,19 +907,4 @@ function sanitizeUserForEmail(user) {
   const user1 = Object.assign({}, user);
   delete user1.password;
   return user1;
-}
-
-function promiseToCallback(promise) {
-  return function (cb) {
-    promise.then(
-      data => {
-        process.nextTick(cb, null, data);
-      },
-      err => {
-        //if (err) console.log('p2c', err);
-        process.nextTick(cb, err);
-      });
-
-    return null;
-  };
 }
