@@ -5,6 +5,8 @@ Adds user email verification, forgotten password reset, and other capabilities t
 [![Build Status](https://travis-ci.org/eddyystop/feathers-service-verify-reset.svg?branch=master)](https://travis-ci.org/eddyystop/feathers-service-verify-reset)
 [![Coverage Status](https://coveralls.io/repos/github/eddyystop/feathers-service-verify-reset/badge.svg?branch=master)](https://coveralls.io/github/eddyystop/feathers-service-verify-reset?branch=master)
 
+Capabilities:
+
 - Checking that values for fields like email and username are unique within `users` items.
 - Hooks for adding a new user.
 - Send another email address verification notification, routing through your email or SMS transports.
@@ -133,18 +135,17 @@ therefore `patch` may *not* have a `auth.hashPassword()` hook.
 ## <a name="client"> Client
 
 The service may be called on the client using
-- (A1) Feathers method calls,
-- (A2) provided service wrappers,
-- (A3) HTTP fetch **(docs todo)**
-- (A4) React's Redux
-- (A5) Vue 2.0 **(docs todo)**
+- [Using Feathers method calls](#methods)
+- [Provided service wrappers](#wrappers)
+- [HTTP fetch](#fetch)
+- [React's Redux](#redux)
+- [Vue 2.0 (docs todo)](#vue)
 
 ### <a name="methods"> Using Feathers' method calls
 Method calls return a Promise unless a callback is provided.
 
 ```javascript
-const verifyReset = app.service('/verifyReset/:action/:value');
-verifyReset.create({ action, value, ... [, cb]});
+const verifyReset = app.service('verifyReset');
 
 // check props are unique in the users items
 verifyReset.create({ action: 'checkUnique',
@@ -231,7 +232,7 @@ app.authenticate({ type: 'local', email, password })
 
 ### <a name="wrappers"> Provided service wrappers
 The wrappers return a Promise unless a callback is provided.
-See example/ for a working example of wrapper usage.
+See `example/` for a working example of wrapper usage.
 
 ```javascript`
 <script src=".../feathers-service-verify-reset/lib/client.js"></script>
@@ -272,11 +273,11 @@ verifyReset.emailChange(password, email, user, cb)
 verifyReset.authenticate(email, password, cb)
 ```
 
-### <a name="fetch"> HTTP fetch (docs todo)
+### <a name="fetch"> HTTP fetch (docs to complete)
 
 ```javascript
 // check props are unique in the users items
-// Set params just like (A1).
+// Set params just like [Feathers method calls.](#methods)
 fetch('/verifyReset/:action/:value', {
   method: 'POST', headers: { Accept: 'application/json' },
   body: JSON.stringify({ action: 'checkUnique', value: uniques, ownId, meta: { noErrMsg } })
@@ -286,8 +287,8 @@ fetch('/verifyReset/:action/:value', {
 
 
 ### <a name="redux"> React's Redux
-See feathers-reduxify-services for information about state, etc.
-See feathers-starter-react-redux-login-roles for a working example.
+See `feathers-reduxify-services` for information about state, etc.
+See `feathers-starter-react-redux-login-roles` for a working example.
 
 #### <a name="reduxServices"> Dispatching services
 
@@ -305,7 +306,7 @@ export default combineReducers({
 ...
 
 // email addr verification with long token
-// Feathers is now 100% compatible with Redux. Use just like (A1).
+// Feathers is now 100% compatible with Redux. Use just like [Feathers method calls.](#methods)
 store.dispatch(services.verifyReset.create({ action: 'verifySignupLong',
     value: token, // compares to .verifyToken
   }, {})
@@ -333,7 +334,7 @@ store.dispatch(signin.authenticate({ type: 'local', email, password }))
 
 
 ## Hooks
-Thw service does not itself handle creation of a new user account nor the sending of the initial
+The service does not itself handle creation of a new user account nor the sending of the initial
 email verification request.
 Instead hooks are provided for you to use with the `users` service `create` method.
 
