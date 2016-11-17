@@ -1,5 +1,10 @@
 # Notable changes to feathers-service-verify-reset
 
+## 1.0.1
+### Fixes
+- The client wrappers now return Promises, as documented, when a callback is not used.
+https://github.com/eddyystop/feathers-service-verify-reset/issues/20
+
 ## 0.8.0
 ### Enhancements
 - The repo has been rewritten to use Promises throughout.

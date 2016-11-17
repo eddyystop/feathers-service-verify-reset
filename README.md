@@ -278,12 +278,15 @@ verifyReset.authenticate(email, password, cb)
 ```javascript
 // check props are unique in the users items
 // Set params just like [Feathers method calls.](#methods)
-fetch('/verifyReset/:action/:value', {
+fetch('/verifyReset', {
   method: 'POST', headers: { Accept: 'application/json' },
   body: JSON.stringify({ action: 'checkUnique', value: uniques, ownId, meta: { noErrMsg } })
 })
   .then(data => { ... }).catch(err => { ... });
 ```
+
+You will want to refer to
+[authenticating over HTTP](https://docs.feathersjs.com/authentication/readme.html#authentication-over-rest).
 
 
 ### <a name="redux"> React's Redux
