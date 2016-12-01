@@ -5,6 +5,98 @@ Adds user email verification, forgotten password reset, and other capabilities t
 [![Build Status](https://travis-ci.org/eddyystop/feathers-service-verify-reset.svg?branch=master)](https://travis-ci.org/eddyystop/feathers-service-verify-reset)
 [![Coverage Status](https://coveralls.io/repos/github/eddyystop/feathers-service-verify-reset/badge.svg?branch=master)](https://coveralls.io/github/eddyystop/feathers-service-verify-reset?branch=master)
 
+> **Deprecated:** `feathers-service-verify-reset` has been moved into Feathers core as
+> `feathers-authentication-management` for the `Auk` release.
+>
+> `feathers-authentication-management` has important new capabilities.
+> Its API has been rationalized and deprecated features have been removed.
+> Documentation is available at [Feathers docs](https://docs.feathersjs.com)
+> under `Authentication`, `Password Management`, `Local`.
+
+<!-- -->
+
+### Migration to feathers-authentication-management
+
+- `options.userPropsForShortToken` renamed `options.identifyUserProps`.
+It contains all fields uniquely identifying the user.
+These will mainly be communications (email, cellphone, facebook) but also username.
+- The prop names in `options.identifyUserProps` need to have unique key columns in the DB.
+This repo uses DB failures to catch duplicate keys,
+because `.verifyChange` values makes catching potential duplicates difficult.
+- user item should have a `primaryCommunication` prop for the notifier.
+- `hooks.restrictToVerified` renamed `hooks.isVerified`
+- `options.userNotifier` renamed `options.notifier`
+- notifier must return a promise
+- `notifier(p1, p2, p3)` now, not `(p1, p2, p3, newEmail)`. Contents of changes in `verifyChange`.
+- notifier type `emailChange` is now `identityChange`
+- `resendVerifySignup` no longer allows a string param to be the email
+- `verifyReset` param `actions` removed: unique, resend, verify, forgot, reset, password, email
+- `options.service` added. default '/users' ** Does this satisfy needs e.g. signin by organization?**
+- service accessed by `require(repo-name)` now, not `require(repo-name).service`.
+- hooks still accessed by `require('repo-name').hooks`.
+- `hooks.addVerification` now *requires* the same options as used with .configure(authManagement({ options })). This allows `addVerification` to be used with multiple instances of authManagement configurations.
+- `hooks.addVerification`'s `options.len` removed. use `options.longTokenLen`
+- wrapper `sendResetPwd(identifyUser, notifierOptions)` now, not `(email, notifierOptions)`
+- wrapper `passwordChange(oldPassword, password, identifyUser)` now, not `(oldPassword, password, user)`
+- wrapper `identityChange(password, changesIdentifyUser, identifyUser)` now, not `emailChange(password, email, user)`
+- neither the service nor the wrappers support callbacks.
+Callbacks for services are being removed from feathers in early 2017 with the Buzzard release.
+
+- service changed from
+```javascript
+    verifyReset.create({
+      action: 'passwordChange',
+      value: { oldPassword: plainPassword, password: plainNewPassword },
+    }, { user: paramsUser }, cb)
+```
+to
+```javascript
+    verifyReset.create({
+      action: 'passwordChange',
+      value: { user: { email }, oldPassword: plainPassword, password: plainNewPassword },
+    }, {}, cb)
+```
+- service changed from
+```javascript
+    verifyReset.create({
+      action: 'emailChange',
+      value: { password: plainPassword, email: newEmail },
+    }, { user: paramsUser }, cb)
+```
+to
+```javascript
+    verifyReset.create({
+      action: 'identityChange',
+      value: { user: { email }, password: plainPassword, changes: { email, cellphone } },
+    }, {}, cb)
+```
+
+- user needs to add these hooks for the verifyReset service, the repo no longer does it automatically:
+
+  for feathers-authenticate < v1.0
+```javascript
+    const isAction = (...args) => hook => args.includes(hook.data.action);
+    before: {
+        create: [
+          hooks.iff(isAction('passwordChange', 'emailChange'), auth.verifyToken()),
+          hooks.iff(isAction('passwordChange', 'emailChange'), auth.populateUser()),
+        ],
+    },
+````
+  or for feathers-authenticate v1.0
+```javascript
+    const isAction = (...args) => hook => args.includes(hook.data.action);
+    before: {
+      create: [
+        hooks.iff(isAction('passwordChange', 'emailChange'), auth.hooks.authenticate('jwt')),
+        hooks.iff(isAction('passwordChange', 'emailChange'), auth.populateUser()),
+      ],
+    },
+```
+
+
+## feathers-service-verify-reset features
+
 Capabilities:
 
 - Checking that values for fields like email and username are unique within `users` items.
