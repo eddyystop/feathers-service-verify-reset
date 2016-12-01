@@ -27,14 +27,14 @@ because `.verifyChange` values makes catching potential duplicates difficult.
 - `hooks.restrictToVerified` renamed `hooks.isVerified`
 - `options.userNotifier` renamed `options.notifier`
 - notifier must return a promise
-- `notifier(p1, p2, p3)` now, not `(p1, p2, p3, newEmail)`. Contents of changes in `verifyChange`.
+- `notifier(p1, p2, p3)` now, not `(p1, p2, p3, newEmail)`. The requested changes are in `.verifyChanges`.
 - notifier type `emailChange` is now `identityChange`
 - `resendVerifySignup` no longer allows a string param to be the email
 - `verifyReset` param `actions` removed: unique, resend, verify, forgot, reset, password, email
-- `options.service` added. default '/users' ** Does this satisfy needs e.g. signin by organization?**
+- `options.service` added. default '/users'. Read docs on multiple services for further information.
 - service accessed by `require(repo-name)` now, not `require(repo-name).service`.
 - hooks still accessed by `require('repo-name').hooks`.
-- `hooks.addVerification` now *requires* the same options as used with .configure(authManagement({ options })). This allows `addVerification` to be used with multiple instances of authManagement configurations.
+- `hooks.addVerification` no longer has the previous param. Read docs on multiple services for further information. This allows `addVerification` to be used with multiple instances of authManagement configurations.
 - `hooks.addVerification`'s `options.len` removed. use `options.longTokenLen`
 - wrapper `sendResetPwd(identifyUser, notifierOptions)` now, not `(email, notifierOptions)`
 - wrapper `passwordChange(oldPassword, password, identifyUser)` now, not `(oldPassword, password, user)`
@@ -54,7 +54,7 @@ to
     verifyReset.create({
       action: 'passwordChange',
       value: { user: { email }, oldPassword: plainPassword, password: plainNewPassword },
-    }, {}, cb)
+    })
 ```
 - service changed from
 ```javascript
@@ -68,7 +68,7 @@ to
     verifyReset.create({
       action: 'identityChange',
       value: { user: { email }, password: plainPassword, changes: { email, cellphone } },
-    }, {}, cb)
+    })
 ```
 
 - user needs to add these hooks for the verifyReset service, the repo no longer does it automatically:
