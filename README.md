@@ -12,6 +12,7 @@ Adds user email verification, forgotten password reset, and other capabilities t
 > Its API has been rationalized and deprecated features have been removed.
 > Documentation is available at [Feathers docs](https://docs.feathersjs.com)
 > under `Authentication`, `Password Management`, `Local`.
+> ([Also available here for now.](https://github.com/feathersjs/feathers-docs/pull/320/commits/4e4564a0416bc55b836e3738b77890d79ff47b36))
 
 <!-- -->
 
