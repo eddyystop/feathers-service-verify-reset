@@ -3,8 +3,8 @@
 
 const hooks = require('feathers-hooks');
 const auth = require('feathers-authentication').hooks;
-const verifyHooks = require('../../../hooks').hooks;
-
+const verifyHooks = require('../../../hooks').verifyResetHooks;
+console.log('1', verifyHooks)
 exports.before = {
   all: [],
   find: [
