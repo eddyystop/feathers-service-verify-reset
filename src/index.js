@@ -151,6 +151,11 @@ var options = {
  *     email, // new email
  *   },
  * }, { user }, cb)
+ * 
+ * // check long token is valid without modifying user item
+ * verifyReset.create({ action: 'checkResetLongTokenValid',
+ *   value: token,
+ * }, {}, cb)
  *
  * // Authenticate user and log on if user is verified.
  * var cbCalled = false;
@@ -427,6 +432,9 @@ module.exports.service = function (options1 = {}) {
           case 'emailChange':
             promise = emailChange(params.user, data.value.password, data.value.email);
             break;
+          case 'checkResetLongTokenValid':
+            promise = checkResetLongTokenValid(data.value);
+            break;
           default:
             promise = Promise.reject(new errors.BadRequest(`Action '${data.action}' is invalid.`,
                 { errors: { $className: 'badParams' } }));
@@ -687,6 +695,28 @@ module.exports.service = function (options1 = {}) {
         .then(([user1]) => userNotifier('emailChange', user1, null, email)) // value from comparePassword not need
         .then(user1 => patchUser(user1, { email }))
         .then(user1 => sanitizeUserForClient(user1));
+    }
+
+    function checkResetLongTokenValid(resetToken) {
+      return Promise.resolve()
+        .then(() => {
+          ensureValuesAreStrings(resetToken);
+
+          return checkResetTokenValid({ resetToken }, { resetToken });
+        });
+    }
+
+    function checkResetTokenValid(query, tokens) {
+      return users.find({ query })
+        .then(data => getUserData(data, ['isVerified', 'resetNotExpired']))
+        .then(user => {
+          if (!Object.keys(tokens).every(key => tokens[key] === user[key])) {
+            throw new errors.BadRequest('Invalid token. Get for a new one. (verify-reset)',
+              { errors: { $className: 'badParam' } });
+          }
+
+          return { valid: true };
+        });
     }
 
     // Helpers requiring this closure

@@ -57,6 +57,11 @@ function VerifyReset(app) { // eslint-disable-line no-unused-vars
     action: 'emailChange',
     value: { password, email },
   }, { user }, cb);
+
+  this.checkResetLongTokenValid = (token, cb) => verifyReset.create({
+    action: 'checkResetLongTokenValid',
+    value: token,
+  }, {}, cb);
   
   this.authenticate = (email, password, cb) => {
     let cbCalled = false;
