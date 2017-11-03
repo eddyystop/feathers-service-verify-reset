@@ -31,7 +31,7 @@ const verifyResetServiceFake = function () {
       create(data, params1, cb) {
         spyData = data;
         spyParams = params1;
-        
+
         return cb ? cb(null) : Promise.resolve();
       },
     });
@@ -41,7 +41,7 @@ const verifyResetServiceFake = function () {
       spyAuthenticatePassword = obj.password;
 
       const index = usersDb[0].email === obj.email ? 0 : 1;
-  
+
       return Promise.resolve({ data: usersDb[index] });
     };
 
@@ -62,7 +62,7 @@ describe('wrapper - instantiate', () => {
     const verifyReset = new VerifyReset(app);
 
     ['checkUnique', 'resendVerifySignup', 'verifySignupLong', 'verifySignupShort', 'sendResetPwd',
-      'resetPwdLong', 'resetPwdShort', 'passwordChange', 'emailChange',
+      'resetPwdLong', 'resetPwdShort', 'passwordChange', 'emailChange', 'checkResetLongTokenValid'
     ].forEach(method => {
       assert.isFunction(verifyReset[method], `${method} is not a function`);
     });
@@ -85,7 +85,7 @@ describe('wrapper - callback methods', () => {
       assert.deepEqual(spyData, {
         action: 'checkUnique', value: { username: 'john a' }, ownId: null, meta: { noErrMsg: true },
       });
-      
+
       done();
     });
   });
@@ -98,7 +98,7 @@ describe('wrapper - callback methods', () => {
         value: 'a@a.com',
         notifierOptions: { a: 'a' }
       });
-      
+
       done();
     });
   });
@@ -107,11 +107,11 @@ describe('wrapper - callback methods', () => {
     verifyReset.verifySignupLong('000', () => {
       assert.deepEqual(spyParams, {});
       assert.deepEqual(spyData, { action: 'verifySignupLong', value: '000' });
-  
+
       done();
     });
   });
-  
+
   it('verifySignupShort', (done) => {
     verifyReset.verifySignupShort('000', { email: 'a@a.com' }, () => {
       assert.deepEqual(spyParams, {});
@@ -119,11 +119,11 @@ describe('wrapper - callback methods', () => {
         action: 'verifySignupShort',
         value: { token: '000', user: { email: 'a@a.com' } },
       });
-      
+
       done();
     });
   });
-  
+
   it('sendResetPwd', (done) => {
     verifyReset.sendResetPwd('a@a.com', { a: 'a' }, () => {
       assert.deepEqual(spyParams, {});
@@ -132,11 +132,11 @@ describe('wrapper - callback methods', () => {
         value: 'a@a.com',
         notifierOptions: { a: 'a' }
       });
-      
+
       done();
     });
   });
-  
+
   it('resetPwdLong', (done) => {
     verifyReset.resetPwdLong('000', '12345678', () => {
       assert.deepEqual(spyParams, {});
@@ -144,11 +144,11 @@ describe('wrapper - callback methods', () => {
         action: 'resetPwdLong',
         value: { token: '000', password: '12345678' }
       });
-      
+
       done();
     });
   });
-  
+
   it('resetPwdShort', (done) => {
     verifyReset.resetPwdShort('000', { email: 'a@a.com' }, '12345678', () => {
       assert.deepEqual(spyParams, {});
@@ -156,7 +156,7 @@ describe('wrapper - callback methods', () => {
         action: 'resetPwdShort',
         value: { token: '000', user: { email: 'a@a.com' }, password: '12345678' },
       });
-      
+
       done();
     });
   });
@@ -169,7 +169,7 @@ describe('wrapper - callback methods', () => {
       assert.deepEqual(spyData, {
         action: 'passwordChange', value: { oldPassword: '12345678', password: 'password' },
       });
-      
+
       done();
     });
   });
@@ -182,7 +182,7 @@ describe('wrapper - callback methods', () => {
       assert.deepEqual(spyData, {
         action: 'emailChange', value: { password: '12345678', email: 'b@b.com' },
       });
-      
+
       done();
     });
   });
@@ -194,7 +194,7 @@ describe('wrapper - callback methods', () => {
 
       assert.equal(err, null);
       assert.deepEqual(user, usersDb[1]);
-      
+
       done();
     });
   });
@@ -205,7 +205,19 @@ describe('wrapper - callback methods', () => {
       assert.equal(spyAuthenticatePassword, '12345678');
 
       assert.notEqual(err, null);
-      
+
+      done();
+    });
+  });
+
+  it('checkResetLongTokenValid', (done) => {
+    verifyReset.checkResetLongTokenValid('000', (err, data) => {
+      assert.deepEqual(spyData, {
+        action: 'checkResetLongTokenValid',
+        value: '000',
+      });
+
+      assert.equal(err, null);
       done();
     });
   });
@@ -214,13 +226,13 @@ describe('wrapper - callback methods', () => {
 describe('wrapper - promise methods', () => {
   var app;
   var verifyReset;
-  
+
   beforeEach(() => {
     app = feathersStubs.app();
     verifyResetServiceFake().call(app);
     verifyReset = new VerifyReset(app);
   });
-  
+
   it('checkUnique', (done) => {
     verifyReset.checkUnique({ username: 'john a' }, null, true)
       .then(() => {
@@ -232,7 +244,7 @@ describe('wrapper - promise methods', () => {
         done();
       });
   });
-  
+
   it('resendVerify', (done) => {
     verifyReset.resendVerifySignup('a@a.com', { b: 'b' })
       .then(() => {
@@ -242,21 +254,21 @@ describe('wrapper - promise methods', () => {
           value: 'a@a.com',
           notifierOptions: { b: 'b' }
         });
-        
+
         done();
       });
   });
-  
+
   it('verifySignupLong', (done) => {
     verifyReset.verifySignupLong('000')
       .then(() => {
         assert.deepEqual(spyParams, {});
         assert.deepEqual(spyData, { action: 'verifySignupLong', value: '000' });
-        
+
         done();
       });
   });
-  
+
   it('verifySignupShort', (done) => {
     verifyReset.verifySignupShort('000', { email: 'a@a.com' })
       .then(() => {
@@ -265,11 +277,11 @@ describe('wrapper - promise methods', () => {
           action: 'verifySignupShort',
           value: { token: '000', user: { email: 'a@a.com' } },
         });
-        
+
         done();
       });
   });
-  
+
   it('sendResetPwd', (done) => {
     verifyReset.sendResetPwd('a@a.com', { b: 'b' })
       .then(() => {
@@ -279,11 +291,11 @@ describe('wrapper - promise methods', () => {
           value: 'a@a.com',
           notifierOptions: { b: 'b' }
         });
-        
+
         done();
       });
   });
-  
+
   it('resetPwdLong', (done) => {
     verifyReset.resetPwdLong('000', '12345678')
       .then(() => {
@@ -292,11 +304,11 @@ describe('wrapper - promise methods', () => {
           action: 'resetPwdLong',
           value: { token: '000', password: '12345678' }
         });
-        
+
         done();
       });
   });
-  
+
   it('resetPwdShort', (done) => {
     verifyReset.resetPwdShort('000', { email: 'a@a.com' }, '12345678')
       .then(() => {
@@ -305,59 +317,71 @@ describe('wrapper - promise methods', () => {
           action: 'resetPwdShort',
           value: { token: '000', user: { email: 'a@a.com' }, password: '12345678' },
         });
-        
+
         done();
       });
   });
-  
+
   it('passwordChange', (done) => {
     const user = { _id: 'a', email: 'a', password: 'ahjhjhjkhj', isVerified: false };
-    
+
     verifyReset.passwordChange('12345678', 'password', user)
       .then(() => {
         assert.deepEqual(spyParams, { user });
         assert.deepEqual(spyData, {
           action: 'passwordChange', value: { oldPassword: '12345678', password: 'password' },
         });
-        
+
         done();
       });
   });
-  
+
   it('emailChange', (done) => {
     const user = { _id: 'a', email: 'a', password: 'ahjhjhjkhj', isVerified: false };
-    
+
     verifyReset.emailChange('12345678', 'b@b.com', user)
       .then(() => {
         assert.deepEqual(spyParams, { user });
         assert.deepEqual(spyData, {
           action: 'emailChange', value: { password: '12345678', email: 'b@b.com' },
         });
-        
+
         done();
       });
   });
-  
+
   it('authenticate is verified', (done) => {
     verifyReset.authenticate('ok', 'bb')
       .then(user => {
         assert.equal(spyAuthenticateEmail, 'ok');
         assert.equal(spyAuthenticatePassword, 'bb');
-  
+
         assert.deepEqual(user, usersDb[1]);
-        
+
         done();
       });
   });
-  
+
   it('authenticate is not verified', (done) => {
     verifyReset.authenticate('bad', '12345678')
       .catch(err => {
         assert.equal(spyAuthenticateEmail, 'bad');
         assert.equal(spyAuthenticatePassword, '12345678');
-        
+
         assert.notEqual(err, null);
-        
+
+        done();
+      });
+  });
+
+  it('checkResetLongTokenValid', (done) => {
+    verifyReset.checkResetLongTokenValid('000')
+      .then(() => {
+        assert.deepEqual(spyData, {
+          action: 'checkResetLongTokenValid',
+          value: '000',
+        });
+
         done();
       });
   });
