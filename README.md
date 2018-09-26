@@ -1,3 +1,5 @@
+DEPRECATED. Goodbye, adiós, au revoir, auf Wiedersehen, zàijiàn.
+
 ## feathers-service-verify-reset
 Adds user email verification, forgotten password reset, and other capabilities to local
 [`feathers-authentication`](http://docs.feathersjs.com/authentication/local.html).
